@@ -1,4 +1,43 @@
-cmd         description
-----        --------------------
-help        print this help page
-quit        quits
+BCS CLI
+This CLI is used to manually control the brewing hardware.
+
+This CLI has 2 config objects, one for each device. See the config with `config`. You should
+change the config objects to reflect how your devices are set up (port, addr, baudrate).
+
+
+Command                     Description
+-------                     --------------------
+help                        print this help page
+quit                        quits
+config                      prints the config for both devices
+STR1 Commands               Description
+
+
+Config Commands             Description
+---------------             ---------------------
+str1.port (port)            Sets the STR1 port. Don't use quotes.
+str1.addr (addr)            Sets the STR1 slave addr. Use decimal, not hex.
+str1.baudrate (baud)        Sets the STR1 baudrate (experimental).
+cn7500.port (port)          Sets the CN7500 port. Don't use quotes.
+cn7500.addr (addr)          Sets the CN7500 slave addr. Use decimal, not hex.
+cn7500.baudrate (baud)      Sets the CN7500 baudrate (experimental).
+
+
+STR1 Commands               Description
+-------------               ---------------------
+str1.connected              Checks if the device is responding
+str1.relay (n)              Gets the status of relay [#]
+str1.relay (n) (1|0)        Sets relay n on or off
+str1.set_cn (0-255)         Programs the relay board with a new controller number
+str1.all_relays             Lists the status of all the relays
+
+
+CN7500 Commands             Description
+---------------             ---------------------
+cn7500.connected            Checks if the device is responding
+cn7500.pv                   Gets the process value
+cn7500.sv                   Gets the setpoint value
+cn7500.sv (new_sv)          Sets the setpoint value
+cn7500.run                  Runs the PID
+cn7500.stop                 Stops the PID
+cn7500.set_units (C|F)      Sets the temperature units to F or C

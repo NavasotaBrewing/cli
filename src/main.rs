@@ -4,9 +4,7 @@ const HELP_PAGE: &'static str = include_str!("help_page");
 
 use std::{
     io::{Write, stdout, stdin},
-    process::exit,
-    println,
-    unimplemented
+    process::exit
 };
 
 macro_rules! prompt {
@@ -23,7 +21,7 @@ macro_rules! prompt {
 
 
 fn prompt() -> String {
-    print!(">  ");
+    print!("=>  ");
     stdout().flush().unwrap();
 
     let mut buffer = String::new();
@@ -52,7 +50,6 @@ struct STR1Config {
 }
 
 fn main() {
-    println!("Brewdrivers {}", env!("CARGO_PKG_VERSION"));
 
     let mut str1_config = STR1Config {
         port: String::from("/dev/ttyUSB0"),
@@ -68,6 +65,7 @@ fn main() {
 
     loop {
 
+
         let input = match prompt!(String) {
             Some(value) => value,
             _ => continue,
@@ -79,7 +77,10 @@ fn main() {
         if args.len() == 1 {
             // Basic commands, no args
             match args[0] {
-                "help" => println!("{}", HELP_PAGE),
+                "help" => {
+                    println!("Brewdrivers {}", env!("CARGO_PKG_VERSION"));
+                    println!("{}", HELP_PAGE);
+                },
                 "quit" => exit(0),
                 "config" => {
                     println!("{:#?}", str1_config);
@@ -87,7 +88,6 @@ fn main() {
                 }
                 _ => {}
             }
-            continue;
         }
 
 
@@ -142,6 +142,11 @@ fn main() {
 
         // STR1 actions
         match args[0] {
+            "str1.connected" => {
+                // Is STR1 running
+                println!("STR1 connected");
+                continue;
+            },
             "str1.relay" => {
                 if args.len() == 3 {
                     // Set relay
@@ -160,12 +165,21 @@ fn main() {
                     println!("Invalid controller number, should be 0-255");
                 }
                 continue;
+            },
+            "str1.all_relays" => {
+                // List all relays
+                println!("All relays");
             }
             _ => {}
         }
 
         // CN7500 actions
         match args[0] {
+            "cn7500.connected" => {
+                // Is CN7500 connected
+                println!("CN7500 connected");
+                continue;
+            },
             "cn7500.pv" => {
                 // Get PV
                 println!("{}", "118.3");
@@ -208,8 +222,11 @@ fn main() {
                     }
                     _ => {}
                 }
+                continue;
             }
             _ => {}
         }
+
+
     }
 }
