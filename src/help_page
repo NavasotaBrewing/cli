@@ -1,2 +1,4 @@
---- NBS CLI ---
-Help        print this help page
+cmd         description
+----        --------------------
+help        print this help page
+quit        quits
