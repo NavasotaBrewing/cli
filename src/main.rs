@@ -48,7 +48,7 @@ struct CN7500Config {
 impl CN7500Config {
     // Connects to the device
     pub async fn connect(&self) -> CN7500 {
-        let mut cn = CN7500::new(
+        let cn = CN7500::new(
             self.addr as u8,
             &self.port,
             self.baudrate
@@ -68,7 +68,7 @@ struct STR1Config {
 impl STR1Config {
     // Connects to the board
     pub fn connect(&self) -> STR1 {
-        let mut str1 = STR1::new(
+        let str1 = STR1::new(
             self.addr,
             &self.port,
             self.baudrate
@@ -279,32 +279,54 @@ async fn main() {
         match args[0] {
             "cn7500.connected" => {
                 // Is CN7500 connected
-                println!("CN7500 connected");
+                println!("CN7500 connected: {}", cn7500_config
+                    .connect()
+                    .await
+                    .is_running()
+                    .await
+                    .is_ok()
+                );
                 continue;
             },
             "cn7500.pv" => {
                 // Get PV
-                println!("{}", "118.3");
+                let mut cn = cn7500_config.connect().await;
+                println!("pv: {:?}", cn.get_pv().await);
                 continue;
             },
             "cn7500.sv" => {
-                if args.len() == 2 {
-                    // Set SV
-                    println!("SV set to {}", args[1]);
-                } else {
-                    // Get SV
-                    println!("SV: {}", "150.0");
+                let mut cn = cn7500_config.connect().await;
+                // If there's no arg, print the sv and leave
+                if args.len() < 2 {
+                    println!("sv: {:?}", cn.get_sv().await);
+                    continue;
+                }
+
+                // otherwise, set the sv
+                match args[1].parse::<f64>() {
+                    Ok(new_sv) => {
+                        let result = cn.set_sv(new_sv).await;
+                        if result.is_err() {
+                            eprintln!("Error: {}", result.unwrap_err());
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Couldn't parse new sv (f64) from arg '{}'", args[1]);
+                        eprintln!("{}", e);
+                    }
                 }
                 continue;
             },
             "cn7500.run" => {
                 // Run the cn7500
-                println!("CN7500 is running...");
+                let mut cn = cn7500_config.connect().await;
+                println!("CN7500 is running: {:?}", cn.run().await);
                 continue;
             },
             "cn7500.stop" => {
                 // Stop the cn7500
-                println!("CN7500 stopped.");
+                let mut cn = cn7500_config.connect().await;
+                println!("CN7500 stopped: {:?}", cn.stop().await);
                 continue;
             },
             "cn7500.set_units" => {
@@ -313,16 +335,20 @@ async fn main() {
                     continue;
                 }
 
+                let mut cn = cn7500_config.connect().await;
+
                 match args[1].to_uppercase().as_str() {
                     "F" => {
                         // Set to F
-                        println!("CN7500 set to Fahrenheit");
+                        println!("CN7500 set to Fahrenheit: {:?}", cn.set_degrees(Degree::Fahrenheit).await);
                     },
                     "C" => {
                         // Set to C
-                        println!("CN7500 set to Celsius");
+                        println!("CN7500 set to Celsius: {:?}", cn.set_degrees(Degree::Celsius).await);
                     }
-                    _ => {}
+                    _ => {
+                        println!("Invalid arg '{}', should be C or F.", args[1]);
+                    }
                 }
                 continue;
             }
