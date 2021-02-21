@@ -129,16 +129,23 @@ async fn main() {
         };
 
         let args = input.split(' ').collect::<Vec<&str>>();
+        if args.get(0).is_none() {
+            eprintln!("Provide at least one command");
+            continue;
+        }
+        let cmd = *args.get(0).unwrap();
+        #[allow(unused_variables)]
+        let (arg1, arg2, arg3) = (args.get(1), args.get(2), args.get(3));
 
         // No arg commands
-        if args.len() == 1 {
+        if arg1.is_none() {
             // Basic commands, no args
-            match args[0] {
+            match cmd {
+                "quit" => exit(0),
                 "help" => {
-                    println!("Brewdrivers {}", env!("CARGO_PKG_VERSION"));
+                    println!("Brewdrivers CLI {}", env!("CARGO_PKG_VERSION"));
                     println!("{}", HELP_PAGE);
                 },
-                "quit" => exit(0),
                 "config" => {
                     println!("{:#?}", str1_config);
                     println!("{:#?}", cn7500_config);
@@ -150,23 +157,43 @@ async fn main() {
 
         // Regular command groups
         // STR1 Config group
-        match args[0].to_lowercase().as_str() {
+        match cmd.to_lowercase().as_str() {
             "str1.port" => {
-                str1_config.port = String::from(args[1]);
-                println!("STR1 connected: {}", str1_config.connect().connected());
-                continue;
-            },
-            "str1.baudrate" => {
-                if let Ok(baud) = args[1].parse::<u32>() {
-                    str1_config.baudrate = baud;
+                if let Some(port) = arg1 {
+                    str1_config.port = String::from(*port);
                     println!("STR1 connected: {}", str1_config.connect().connected());
                 }
                 continue;
             },
+            "str1.baudrate" => {
+                if let Some(baud_arg) = arg1 {
+                    match baud_arg.parse::<u32>() {
+                        Ok(baud) => {
+                            str1_config.baudrate = baud;
+                            println!("Baudrate changed to {}", str1_config.baudrate);
+                            println!("STR1 connected: {}", str1_config.connect().connected());
+                        },
+                        Err(e) => {
+                            eprintln!("Couldn't parse baudrate, found {}", baud_arg);
+                            eprintln!("Error: {}", e);
+                        }
+                    }
+                }
+                continue;
+            },
             "str1.addr" => {
-                if let Ok(addr) = args[1].parse::<u8>() {
-                    str1_config.addr = addr;
-                    println!("STR1 connected: {}", str1_config.connect().connected());
+                if let Some(addr_arg) = arg1 {
+                    match addr_arg.parse::<u8>() {
+                        Ok(addr) => {
+                            str1_config.addr = addr;
+                            println!("Address set to {}", str1_config.addr);
+                            println!("STR1 connected: {}", str1_config.connect().connected());
+                        },
+                        Err(e) => {
+                            eprintln!("Couldn't parse addr from '{}'", addr_arg);
+                            eprintln!("Error: {}", e);
+                        }
+                    }
                 }
                 continue;
             },
