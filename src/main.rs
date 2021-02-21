@@ -207,36 +207,56 @@ async fn main() {
         // CN7500 Config group
         match args[0].to_lowercase().as_str() {
             "cn7500.port" => {
-                cn7500_config.port = String::from(args[1]);
-                println!("CN7500 connected: {}", cn7500_config
+                if let Some(port) = arg1 {
+                    cn7500_config.port = String::from(*port);
+                    println!("CN7500 connected: {}", cn7500_config
                     .connect()
                     .await
                     .is_running()
                     .await
                     .is_ok());
+                }
                 continue;
             },
             "cn7500.baudrate" => {
-                if let Ok(baud) = args[1].parse::<u32>() {
-                    cn7500_config.baudrate = baud;
-                    println!("CN7500 connected: {}", cn7500_config
-                        .connect()
-                        .await
-                        .is_running()
-                        .await
-                        .is_ok());
+                if let Some(baud_arg) = arg1 {
+                    match baud_arg.parse::<u32>() {
+                        Ok(baud) => {
+                            cn7500_config.baudrate = baud;
+                            println!("Baudrate changed to {}", cn7500_config.baudrate);
+                            println!("CN7500 connected: {}", cn7500_config
+                                .connect()
+                                .await
+                                .is_running()
+                                .await
+                                .is_ok());
+                        },
+                        Err(e) => {
+                            eprintln!("Couldn't parse baudrate, found {}", baud_arg);
+                            eprintln!("Error: {}", e);
+                        }
+                    }
                 }
                 continue;
             },
             "cn7500.addr" => {
-                if let Ok(addr) = args[1].parse::<u16>() {
-                    cn7500_config.addr = addr;
-                    println!("CN7500 connected: {}", cn7500_config
-                        .connect()
-                        .await
-                        .is_running()
-                        .await
-                        .is_ok());
+                if let Some(addr_arg) = arg1 {
+                    match addr_arg.parse::<u16>() {
+                        Ok(addr) => {
+                            cn7500_config.addr = addr;
+                            println!("Address set to {}", cn7500_config.addr);
+                            println!("CN7500 connected: {}", cn7500_config
+                                .connect()
+                                .await
+                                .is_running()
+                                .await
+                                .is_ok());
+                        },
+                        Err(e) => {
+                            eprintln!("Couldn't parse addr from '{}'", addr_arg);
+                            eprintln!("Error: {}", e);
+                        }
+                    }
                 }
                 continue;
             },
@@ -258,16 +278,20 @@ async fn main() {
                 // Connect to the board
                 let mut str1 = str1_config.connect();
 
-                // This will actually always fire because we handle single args above,
-                // and continue in each case.
-                if let Some(relay_num_arg) = args.get(1) {
+
+                if let Some(relay_num_arg) = arg1 {
                     // Get our relay number
-                    let relay_num = relay_num_arg.parse::<u8>().expect(
-                        &format!("Invalid relay number, need 0-255, found {}", args[1])
-                    );
+                    let relay_num = match relay_num_arg.parse::<u8>() {
+                        Ok(relay_num) => relay_num,
+                        Err(e) => {
+                            eprintln!("Couldn't parse relay number from '{}'", relay_num_arg);
+                            eprintln!("Error: {}", e);
+                            continue;
+                        }
+                    };
 
                     // If we need to update the relay, update it
-                    if let Some(state_arg) = args.get(2) {
+                    if let Some(state_arg) = arg2 {
                         let state = match state_arg.to_lowercase().trim() {
                             "1" | "on" => State::On,
                             _ => State::Off
@@ -276,7 +300,7 @@ async fn main() {
                         str1.set_relay(relay_num, state);
                     }
 
-                    // Afterwords, always print it
+                    // Afterwards, always print it
                     println!("Relay {}: {}", relay_num, str1.get_relay(relay_num));
                 } else {
                     println!("Provide a relay number (0-255)");
@@ -284,13 +308,21 @@ async fn main() {
                 continue;
             },
             "str1.set_cn" => {
-                if let Ok(new_cn) = args[1].parse::<u8>() {
-                    // Set controller number
-                    let mut str1 = str1_config.connect();
-                    str1.set_controller_num(new_cn);
-                    println!("controller number set to {}", new_cn);
-                } else {
-                    println!("Invalid controller number, should be 0-255");
+                if arg1.is_none() {
+                    eprintln!("Provide a new controller number (0-255)");
+                    continue;
+                }
+
+                match arg1.unwrap().parse::<u8>() {
+                    Ok(new_cn) => {
+                        let mut str1 = str1_config.connect();
+                        str1.set_controller_num(new_cn);
+                        println!("controller number set to {}", new_cn);
+                    },
+                    Err(e) => {
+                        eprintln!("Invalid controller number '{}', should be 0-255", arg1.unwrap());
+                        eprintln!("Error: {}", e);
+                    }
                 }
                 continue;
             },
