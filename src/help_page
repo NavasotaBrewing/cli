@@ -9,12 +9,14 @@ Command                     Description
 -------                     --------------------
 help                        print this help page
 quit                        quits
-config                      prints the config for both devices
+config                      prints the config for all devices
 STR1 Commands               Description
 
 
 Config Commands             Description
 ---------------             ---------------------
+str1.config                 Prints the STR1 config
+cn7500.config               Prints the CN7500 config
 str1.port (port)            Sets the STR1 port. Don't use quotes.
 str1.addr (addr)            Sets the STR1 slave addr. Use decimal, not hex.
 str1.baudrate (baud)        Sets the STR1 baudrate (experimental).

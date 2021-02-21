@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["llamicron <llamicron@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+# TODO: Replace this with a solid version
+brewdrivers = { git = "https://github.com/NavasotaBrewing/brewdrivers" }
+tokio = "0.2"

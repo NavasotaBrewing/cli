@@ -7,6 +7,9 @@ use std::{
     process::exit
 };
 
+use brewdrivers::relays::{STR1, State};
+use brewdrivers::omega::{CN7500, Degree};
+
 macro_rules! prompt {
     ($type:ty) => {
         match prompt().parse::<$type>() {
@@ -42,6 +45,19 @@ struct CN7500Config {
     baudrate: u32
 }
 
+impl CN7500Config {
+    // Connects to the device
+    pub async fn connect(&self) -> CN7500 {
+        let mut cn = CN7500::new(
+            self.addr as u8,
+            &self.port,
+            self.baudrate
+        ).await;
+
+        cn
+    }
+}
+
 #[derive(Debug)]
 struct STR1Config {
     port: String,
@@ -49,20 +65,61 @@ struct STR1Config {
     baudrate: u32
 }
 
-fn main() {
+impl STR1Config {
+    // Connects to the board
+    pub fn connect(&self) -> STR1 {
+        let mut str1 = STR1::new(
+            self.addr,
+            &self.port,
+            self.baudrate
+        ).expect(
+            &format!("Error opening serial port {}. Try changing the STR1 config.", self.port)
+        );
+
+        str1
+    }
+}
+
+
+
+
+#[tokio::main]
+async fn main() {
 
     let mut str1_config = STR1Config {
         port: String::from("/dev/ttyUSB0"),
-        addr: 0x01,
+        addr: 0xFE,
         baudrate: 9600
     };
 
     let mut cn7500_config = CN7500Config {
         port: String::from("/dev/ttyUSB0"),
         addr: 0x16,
-        baudrate: 9600
+        baudrate: 19200
     };
 
+    // we connect here just to print the status messages to see if
+    // they connect or not.
+    if str1_config.connect().connected() {
+        println!("STR1 connected successfully.");
+    } else {
+        println!("Could not connect to STR1 with config:");
+        println!("{:#?}", str1_config);
+    }
+
+    if cn7500_config
+        .connect()
+        .await
+        .is_running()
+        .await
+        .is_ok()
+    {
+        println!("CN7500 connected");
+    } else {
+        println!("Could not connect to CN7500 with config:");
+        println!("{:#?}", cn7500_config);
+    }
+    
     loop {
 
 
@@ -96,21 +153,25 @@ fn main() {
         match args[0].to_lowercase().as_str() {
             "str1.port" => {
                 str1_config.port = String::from(args[1]);
-                println!("{:#?}", str1_config);
+                println!("STR1 connected: {}", str1_config.connect().connected());
                 continue;
             },
             "str1.baudrate" => {
                 if let Ok(baud) = args[1].parse::<u32>() {
                     str1_config.baudrate = baud;
-                    println!("{:#?}", str1_config);
+                    println!("STR1 connected: {}", str1_config.connect().connected());
                 }
                 continue;
             },
             "str1.addr" => {
                 if let Ok(addr) = args[1].parse::<u8>() {
                     str1_config.addr = addr;
-                    println!("{:#?}", str1_config);
+                    println!("STR1 connected: {}", str1_config.connect().connected());
                 }
+                continue;
+            },
+            "str1.config" => {
+                println!("{:#?}", str1_config);
                 continue;
             }
             _ => {}
@@ -120,21 +181,40 @@ fn main() {
         match args[0].to_lowercase().as_str() {
             "cn7500.port" => {
                 cn7500_config.port = String::from(args[1]);
-                println!("{:#?}", cn7500_config);
+                println!("CN7500 connected: {}", cn7500_config
+                    .connect()
+                    .await
+                    .is_running()
+                    .await
+                    .is_ok());
                 continue;
             },
             "cn7500.baudrate" => {
                 if let Ok(baud) = args[1].parse::<u32>() {
                     cn7500_config.baudrate = baud;
-                    println!("{:#?}", cn7500_config);
+                    println!("CN7500 connected: {}", cn7500_config
+                        .connect()
+                        .await
+                        .is_running()
+                        .await
+                        .is_ok());
                 }
                 continue;
             },
             "cn7500.addr" => {
                 if let Ok(addr) = args[1].parse::<u16>() {
                     cn7500_config.addr = addr;
-                    println!("{:#?}", cn7500_config);
+                    println!("CN7500 connected: {}", cn7500_config
+                        .connect()
+                        .await
+                        .is_running()
+                        .await
+                        .is_ok());
                 }
+                continue;
+            },
+            "cn7500.config" => {
+                println!("{:#?}", cn7500_config);
                 continue;
             }
             _ => {}
@@ -144,22 +224,43 @@ fn main() {
         match args[0] {
             "str1.connected" => {
                 // Is STR1 running
-                println!("STR1 connected");
+                println!("STR1 connected: {}", str1_config.connect().connected());
                 continue;
             },
             "str1.relay" => {
-                if args.len() == 3 {
-                    // Set relay
-                    println!("Relay {} set to {}", args[1], "On");
-                } else if args.len() == 2 {
-                    // Get relay
-                    println!("Relay {} is {}", args[1], "On");
+                // Connect to the board
+                let mut str1 = str1_config.connect();
+
+                // This will actually always fire because we handle single args above,
+                // and continue in each case.
+                if let Some(relay_num_arg) = args.get(1) {
+                    // Get our relay number
+                    let relay_num = relay_num_arg.parse::<u8>().expect(
+                        &format!("Invalid relay number, need 0-255, found {}", args[1])
+                    );
+
+                    // If we need to update the relay, update it
+                    if let Some(state_arg) = args.get(2) {
+                        let state = match state_arg.to_lowercase().trim() {
+                            "1" | "on" => State::On,
+                            _ => State::Off
+                        };
+
+                        str1.set_relay(relay_num, state);
+                    }
+
+                    // Afterwords, always print it
+                    println!("Relay {}: {}", relay_num, str1.get_relay(relay_num));
+                } else {
+                    println!("Provide a relay number (0-255)");
                 }
                 continue;
             },
             "str1.set_cn" => {
                 if let Ok(new_cn) = args[1].parse::<u8>() {
                     // Set controller number
+                    let mut str1 = str1_config.connect();
+                    str1.set_controller_num(new_cn);
                     println!("controller number set to {}", new_cn);
                 } else {
                     println!("Invalid controller number, should be 0-255");
@@ -168,7 +269,8 @@ fn main() {
             },
             "str1.all_relays" => {
                 // List all relays
-                println!("All relays");
+                let mut str1 = str1_config.connect();
+                str1.list_all_relays();
             }
             _ => {}
         }
