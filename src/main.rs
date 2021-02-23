@@ -133,14 +133,14 @@ async fn main() {
             eprintln!("Provide at least one command");
             continue;
         }
-        let cmd = *args.get(0).unwrap();
+        let cmd = args.get(0).unwrap().to_lowercase();
         #[allow(unused_variables)]
         let (arg1, arg2, arg3) = (args.get(1), args.get(2), args.get(3));
 
         // No arg commands
         if arg1.is_none() {
             // Basic commands, no args
-            match cmd {
+            match cmd.as_str() {
                 "quit" => exit(0),
                 "help" => {
                     println!("Brewdrivers CLI {}", env!("CARGO_PKG_VERSION"));
@@ -157,7 +157,7 @@ async fn main() {
 
         // Regular command groups
         // STR1 Config group
-        match cmd.to_lowercase().as_str() {
+        match cmd.as_str() {
             "str1.port" => {
                 if let Some(port) = arg1 {
                     str1_config.port = String::from(*port);
@@ -205,7 +205,7 @@ async fn main() {
         }
 
         // CN7500 Config group
-        match args[0].to_lowercase().as_str() {
+        match cmd.as_str() {
             "cn7500.port" => {
                 if let Some(port) = arg1 {
                     cn7500_config.port = String::from(*port);
@@ -268,7 +268,7 @@ async fn main() {
         }
 
         // STR1 actions
-        match args[0] {
+        match cmd.as_str() {
             "str1.connected" => {
                 // Is STR1 running
                 println!("STR1 connected: {}", str1_config.connect().connected());
@@ -335,7 +335,7 @@ async fn main() {
         }
 
         // CN7500 actions
-        match args[0] {
+        match cmd.as_str() {
             "cn7500.connected" => {
                 // Is CN7500 connected
                 println!("CN7500 connected: {}", cn7500_config
@@ -363,14 +363,9 @@ async fn main() {
 
                 // otherwise, set the sv
                 match args[1].parse::<f64>() {
-                    Ok(new_sv) => {
-                        let result = cn.set_sv(new_sv).await;
-                        if result.is_err() {
-                            eprintln!("Error: {}", result.unwrap_err());
-                        }
-                    },
+                    Ok(new_sv) => eprintln!("Setting SV: {:?}", cn.set_sv(new_sv).await),
                     Err(e) => {
-                        eprintln!("Couldn't parse new sv (f64) from arg '{}'", args[1]);
+                        eprintln!("Couldn't parse new sv (f64) from arg '{}'", arg1.unwrap());
                         eprintln!("{}", e);
                     }
                 }
@@ -396,7 +391,7 @@ async fn main() {
 
                 let mut cn = cn7500_config.connect().await;
 
-                match args[1].to_uppercase().as_str() {
+                match arg1.unwrap().to_uppercase().as_str() {
                     "F" => {
                         // Set to F
                         println!("CN7500 set to Fahrenheit: {:?}", cn.set_degrees(Degree::Fahrenheit).await);
@@ -406,7 +401,7 @@ async fn main() {
                         println!("CN7500 set to Celsius: {:?}", cn.set_degrees(Degree::Celsius).await);
                     }
                     _ => {
-                        println!("Invalid arg '{}', should be C or F.", args[1]);
+                        println!("Invalid arg '{}', should be C or F.", arg1.unwrap());
                     }
                 }
                 continue;
