@@ -7,7 +7,7 @@ use std::{
     process::exit
 };
 
-use brewdrivers::relays::{STR1, State};
+use brewdrivers::relays::{STR1, STR1Error, State};
 use brewdrivers::omega::{CN7500, Degree};
 
 macro_rules! prompt {
@@ -67,16 +67,31 @@ struct STR1Config {
 
 impl STR1Config {
     // Connects to the board
-    pub fn connect(&self) -> STR1 {
+    pub fn connect(&self) -> Result<STR1, STR1Error> {
         let str1 = STR1::new(
             self.addr,
             &self.port,
             self.baudrate
-        ).expect(
-            &format!("Error opening serial port {}. Try changing the STR1 config.", self.port)
         );
 
         str1
+    }
+
+    // Tries to connect to the board, printing the results
+    pub fn try_connect(&self) {
+        match self.connect() {
+            Ok(mut str1) => {
+                if str1.connected() {
+                    println!("STR1 connected");
+                } else {
+                    println!("Serial port opened, but the STR1 board didn't respond. Do you have the addr/baud correct?\n{:#?}", self);
+                }
+            },
+            Err(_) => {
+                eprintln!("Error: Couldn't connect to STR1 with config:\n{:#?}", self);
+            }
+        }
+        
     }
 }
 
@@ -100,12 +115,7 @@ async fn main() {
 
     // we connect here just to print the status messages to see if
     // they connect or not.
-    if str1_config.connect().connected() {
-        println!("STR1 connected successfully.");
-    } else {
-        println!("Could not connect to STR1 with config:");
-        println!("{:#?}", str1_config);
-    }
+    str1_config.try_connect();
 
     if cn7500_config
         .connect()
@@ -161,7 +171,7 @@ async fn main() {
             "str1.port" => {
                 if let Some(port) = arg1 {
                     str1_config.port = String::from(*port);
-                    println!("STR1 connected: {}", str1_config.connect().connected());
+                    str1_config.try_connect();
                 }
                 continue;
             },
@@ -171,7 +181,7 @@ async fn main() {
                         Ok(baud) => {
                             str1_config.baudrate = baud;
                             println!("Baudrate changed to {}", str1_config.baudrate);
-                            println!("STR1 connected: {}", str1_config.connect().connected());
+                            str1_config.try_connect();
                         },
                         Err(e) => {
                             eprintln!("Couldn't parse baudrate, found {}", baud_arg);
@@ -187,7 +197,7 @@ async fn main() {
                         Ok(addr) => {
                             str1_config.addr = addr;
                             println!("Address set to {}", str1_config.addr);
-                            println!("STR1 connected: {}", str1_config.connect().connected());
+                            str1_config.try_connect();
                         },
                         Err(e) => {
                             eprintln!("Couldn't parse addr from '{}'", addr_arg);
@@ -271,12 +281,21 @@ async fn main() {
         match cmd.as_str() {
             "str1.connected" => {
                 // Is STR1 running
-                println!("STR1 connected: {}", str1_config.connect().connected());
+                let mut str1 = match str1_config.connect() {
+                    Ok(s) => s,
+                    Err(_) => continue
+                };
+                
+                println!("STR1 connected: {}", str1.connected());
                 continue;
             },
             "str1.relay" => {
                 // Connect to the board
-                let mut str1 = str1_config.connect();
+                
+                let mut str1 = match str1_config.connect() {
+                    Ok(s) => s,
+                    Err(_) => continue
+                };
 
 
                 if let Some(relay_num_arg) = arg1 {
@@ -315,7 +334,10 @@ async fn main() {
 
                 match arg1.unwrap().parse::<u8>() {
                     Ok(new_cn) => {
-                        let mut str1 = str1_config.connect();
+                        let mut str1 = match str1_config.connect() {
+                            Ok(s) => s,
+                            Err(_) => continue
+                        };
                         str1.set_controller_num(new_cn);
                         println!("controller number set to {}", new_cn);
                     },
@@ -328,7 +350,10 @@ async fn main() {
             },
             "str1.all_relays" => {
                 // List all relays
-                let mut str1 = str1_config.connect();
+                let mut str1 = match str1_config.connect() {
+                    Ok(s) => s,
+                    Err(_) => continue
+                };
                 str1.list_all_relays();
             }
             _ => {}
