@@ -255,12 +255,7 @@ async fn main() {
         match cmd.as_str() {
             "str1.connected" => {
                 // Is STR1 running
-                let mut str1 = match str1_config.connect() {
-                    Ok(s) => s,
-                    Err(_) => continue,
-                };
-
-                println!("STR1 connected: {}", str1.connected());
+                str1_config.try_connect();
                 continue;
             }
             "str1.relay" => {
