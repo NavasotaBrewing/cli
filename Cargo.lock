@@ -46,9 +46,9 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "brewdrivers"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e5600ef1eb07684fe2b934db3df08f678d55f1a28287fa39b6a7d9247d24037"
+checksum = "77191b623f08a8e8c13aad02ff12424fcd1e1f13a9c162467fe50676d0ce942a"
 dependencies = [
  "futures",
  "hex",
