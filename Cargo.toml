@@ -7,6 +7,5 @@ documentation = "https://github.com/NavasotaBrewing/cli"
 edition = "2018"
 
 [dependencies]
-# TODO: Replace this with a solid version
-brewdrivers = { git = "https://github.com/NavasotaBrewing/brewdrivers" }
+brewdrivers = "0.7.0"
 tokio = "0.2"
