@@ -1,2 +1,2 @@
 [target.armv7-unknown-linux-gnueabihf]
-image = "navasotabrewing/rtu-compiler:0.3.0"
+image = "navasotabrewing/bcs-rtu-compiler:1.0.0"
