@@ -143,7 +143,7 @@ async fn main() {
             match cmd.as_str() {
                 "quit" => exit(0),
                 "help" => {
-                    println!("Brewdrivers CLI {}", env!("CARGO_PKG_VERSION"));
+                    println!("NBC CLI {}", env!("CARGO_PKG_VERSION"));
                     println!("{}", HELP_PAGE);
                 }
                 "config" => {

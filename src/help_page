@@ -10,7 +10,6 @@ Command                     Description
 help                        print this help page
 quit                        quits
 config                      prints the config for all devices
-STR1 Commands               Description
 
 
 Config Commands             Description
