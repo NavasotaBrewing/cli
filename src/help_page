@@ -14,11 +14,10 @@ config                      prints the config for all devices
 
 Config Commands             Description
 ---------------             ---------------------
-str1.config                 Prints the STR1 config
+waveshare.config            Prints the Waveshare config
 cn7500.config               Prints the CN7500 config
-str1.port (port)            Sets the STR1 port. Don't use quotes.
-str1.addr (addr)            Sets the STR1 slave addr. Use decimal, not hex.
-str1.baudrate (baud)        Sets the STR1 baudrate (experimental).
+waveshare.port (port)       Sets the Waveshare port. Don't use quotes.
+waveshare.addr (addr)       Sets the Waveshare slave addr. Use decimal, not hex.
 cn7500.port (port)          Sets the CN7500 port. Don't use quotes.
 cn7500.addr (addr)          Sets the CN7500 slave addr. Use decimal, not hex.
 cn7500.baudrate (baud)      Sets the CN7500 baudrate (experimental).
@@ -26,7 +25,7 @@ cn7500.baudrate (baud)      Sets the CN7500 baudrate (experimental).
 
 STR1 Commands               Description
 -------------               ---------------------
-str1.connected              Checks if the device is responding
+waveshare.connected         Checks if the device is responding
 str1.relay (n)              Gets the status of relay [#]
 str1.relay (n) (1|0)        Sets relay n on or off
 str1.set_cn (0-255)         Programs the relay board with a new controller number

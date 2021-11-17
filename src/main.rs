@@ -7,10 +7,10 @@ use std::{
     process::exit,
 };
 
-use brewdrivers::omega::{Degree, CN7500};
+use brewdrivers::{omega::{Degree, CN7500}, relays::BoardError};
 use brewdrivers::{
     modbus::ModbusError,
-    relays::{STR1Error, State, STR1},
+    relays::{Waveshare, State}
 };
 
 macro_rules! prompt {
@@ -71,32 +71,29 @@ impl CN7500Config {
 }
 
 #[derive(Debug)]
-struct STR1Config {
+struct WaveshareConfig {
     port: String,
-    addr: u8,
-    baudrate: u32,
+    addr: u8
 }
 
-impl STR1Config {
+impl WaveshareConfig {
     // Connects to the board
-    pub fn connect(&self) -> Result<STR1, STR1Error> {
-        let str1 = STR1::new(self.addr, &self.port, self.baudrate);
-
-        str1
+    pub fn connect(&self) -> Result<Waveshare, BoardError> {
+        Waveshare::connect(self.addr, &self.port)
     }
 
     // Tries to connect to the board, printing the results
     pub fn try_connect(&self) {
         match self.connect() {
-            Ok(mut str1) => {
-                if str1.connected() {
-                    println!("STR1 connected");
+            Ok(mut ws) => {
+                if ws.software_revision().is_ok() {
+                    println!("Waveshare connected");
                 } else {
-                    println!("Serial port opened, but the STR1 board didn't respond. Do you have the addr/baud correct?\n{:#?}", self);
+                    println!("Serial port opened, but the Waveshare board didn't respond. Do you have the address correct?\n{:#?}", self);
                 }
             }
             Err(_) => {
-                eprintln!("Error: Couldn't connect to STR1 with config:\n{:#?}", self);
+                eprintln!("Error: Couldn't connect to Waveshare with config:\n{:#?}", self);
             }
         }
     }
@@ -104,21 +101,20 @@ impl STR1Config {
 
 #[tokio::main]
 async fn main() {
-    let mut str1_config = STR1Config {
-        port: String::from("/dev/ttyUSB0"),
-        addr: 0xFE,
-        baudrate: 9600,
+    let mut waveshare_config = WaveshareConfig {
+        port: String::from("/dev/ttyAMA0"),
+        addr: 0xFE
     };
 
     let mut cn7500_config = CN7500Config {
-        port: String::from("/dev/ttyUSB0"),
+        port: String::from("/dev/ttyAMA0"),
         addr: 0x16,
-        baudrate: 19200,
+        baudrate: 9600,
     };
 
     // we connect here just to print the status messages to see if
     // they connect or not.
-    str1_config.try_connect();
+    waveshare_config.try_connect();
 
     cn7500_config.try_connect().await;
 
@@ -147,7 +143,7 @@ async fn main() {
                     println!("{}", HELP_PAGE);
                 }
                 "config" => {
-                    println!("{:#?}", str1_config);
+                    println!("{:#?}", waveshare_config);
                     println!("{:#?}", cn7500_config);
                 }
                 _ => {}
@@ -155,38 +151,22 @@ async fn main() {
         }
 
         // Regular command groups
-        // STR1 Config group
+        // Waveshare Config group
         match cmd.as_str() {
-            "str1.port" => {
+            "waveshare.port" => {
                 if let Some(port) = arg1 {
-                    str1_config.port = String::from(*port);
-                    str1_config.try_connect();
+                    waveshare_config.port = String::from(*port);
+                    waveshare_config.try_connect();
                 }
                 continue;
             }
-            "str1.baudrate" => {
-                if let Some(baud_arg) = arg1 {
-                    match baud_arg.parse::<u32>() {
-                        Ok(baud) => {
-                            str1_config.baudrate = baud;
-                            println!("Baudrate changed to {}", str1_config.baudrate);
-                            str1_config.try_connect();
-                        }
-                        Err(e) => {
-                            eprintln!("Couldn't parse baudrate, found {}", baud_arg);
-                            eprintln!("Error: {}", e);
-                        }
-                    }
-                }
-                continue;
-            }
-            "str1.addr" => {
+            "waveshare.addr" => {
                 if let Some(addr_arg) = arg1 {
                     match addr_arg.parse::<u8>() {
                         Ok(addr) => {
-                            str1_config.addr = addr;
-                            println!("Address set to {}", str1_config.addr);
-                            str1_config.try_connect();
+                            waveshare_config.addr = addr;
+                            println!("Address set to {}", waveshare_config.addr);
+                            waveshare_config.try_connect();
                         }
                         Err(e) => {
                             eprintln!("Couldn't parse addr from '{}'", addr_arg);
@@ -196,8 +176,8 @@ async fn main() {
                 }
                 continue;
             }
-            "str1.config" => {
-                println!("{:#?}", str1_config);
+            "waveshare.config" => {
+                println!("{:#?}", waveshare_config);
                 continue;
             }
             _ => {}
@@ -251,17 +231,17 @@ async fn main() {
             _ => {}
         }
 
-        // STR1 actions
+        // Waveshare actions
         match cmd.as_str() {
-            "str1.connected" => {
-                // Is STR1 running
-                str1_config.try_connect();
+            "waveshare.connected" => {
+                // Is Waveshare running
+                waveshare_config.try_connect();
                 continue;
             }
-            "str1.relay" => {
+            "waveshare.relay" => {
                 // Connect to the board
 
-                let mut str1 = match str1_config.connect() {
+                let mut ws = match waveshare_config.connect() {
                     Ok(s) => s,
                     Err(_) => continue,
                 };
@@ -284,17 +264,21 @@ async fn main() {
                             _ => State::Off,
                         };
 
-                        str1.set_relay(relay_num, state);
+                        ws.set_relay(relay_num, state).unwrap();
                     }
 
                     // Afterwards, always print it
-                    println!("Relay {}: {}", relay_num, str1.get_relay(relay_num));
+                    match ws.get_relay(relay_num) {
+                        Ok(state) => println!("Relay {}: {}", relay_num, state),
+                        Err(board_error) => eprintln!("{:?}", board_error)
+                    }
+                    
                 } else {
                     println!("Provide a relay number (0-255)");
                 }
                 continue;
             }
-            "str1.set_cn" => {
+            "waveshare.set_cn" => {
                 if arg1.is_none() {
                     eprintln!("Provide a new controller number (0-255)");
                     continue;
@@ -302,11 +286,11 @@ async fn main() {
 
                 match arg1.unwrap().parse::<u8>() {
                     Ok(new_cn) => {
-                        let mut str1 = match str1_config.connect() {
+                        let mut ws = match waveshare_config.connect() {
                             Ok(s) => s,
                             Err(_) => continue,
                         };
-                        str1.set_controller_num(new_cn);
+                        ws.set_address(new_cn).unwrap();
                         println!("controller number set to {}", new_cn);
                     }
                     Err(e) => {
@@ -319,13 +303,22 @@ async fn main() {
                 }
                 continue;
             }
-            "str1.all_relays" => {
+            "waveshare.all_relays" => {
                 // List all relays
-                let mut str1 = match str1_config.connect() {
+                let mut ws = match waveshare_config.connect() {
                     Ok(s) => s,
                     Err(_) => continue,
                 };
-                str1.list_all_relays();
+                match ws.get_all_relays() {
+                    Ok(states) => {
+                        for (i, state) in states.iter().enumerate() {
+                            println!("Relay {}: {}", i, state);
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Something went wrong, couldn't get relay states: {}", e)
+                    }
+                }
             }
             _ => {}
         }
