@@ -102,12 +102,12 @@ impl WaveshareConfig {
 #[tokio::main]
 async fn main() {
     let mut waveshare_config = WaveshareConfig {
-        port: String::from("/dev/ttyAMA0"),
-        addr: 0xFE
+        port: String::from("/dev/ttyUSB0"),
+        addr: 0x01
     };
 
     let mut cn7500_config = CN7500Config {
-        port: String::from("/dev/ttyAMA0"),
+        port: String::from("/dev/ttyUSB0"),
         addr: 0x16,
         baudrate: 9600,
     };
@@ -130,6 +130,8 @@ async fn main() {
             continue;
         }
         let cmd = args.get(0).unwrap().to_lowercase();
+
+        // Using basically a lint here is gross, is this standard?
         #[allow(unused_variables)]
         let (arg1, arg2, arg3) = (args.get(1), args.get(2), args.get(3));
 
@@ -153,14 +155,14 @@ async fn main() {
         // Regular command groups
         // Waveshare Config group
         match cmd.as_str() {
-            "waveshare.port" => {
+            "ws.port" => {
                 if let Some(port) = arg1 {
                     waveshare_config.port = String::from(*port);
                     waveshare_config.try_connect();
                 }
                 continue;
             }
-            "waveshare.addr" => {
+            "ws.addr" => {
                 if let Some(addr_arg) = arg1 {
                     match addr_arg.parse::<u8>() {
                         Ok(addr) => {
@@ -176,7 +178,7 @@ async fn main() {
                 }
                 continue;
             }
-            "waveshare.config" => {
+            "ws.config" => {
                 println!("{:#?}", waveshare_config);
                 continue;
             }
@@ -233,12 +235,12 @@ async fn main() {
 
         // Waveshare actions
         match cmd.as_str() {
-            "waveshare.connected" => {
+            "ws.connected" => {
                 // Is Waveshare running
                 waveshare_config.try_connect();
                 continue;
             }
-            "waveshare.relay" => {
+            "ws.relay" => {
                 // Connect to the board
 
                 let mut ws = match waveshare_config.connect() {
@@ -278,7 +280,7 @@ async fn main() {
                 }
                 continue;
             }
-            "waveshare.set_cn" => {
+            "ws.set_cn" => {
                 if arg1.is_none() {
                     eprintln!("Provide a new controller number (0-255)");
                     continue;
@@ -303,7 +305,7 @@ async fn main() {
                 }
                 continue;
             }
-            "waveshare.all_relays" => {
+            "ws.all_relays" => {
                 // List all relays
                 let mut ws = match waveshare_config.connect() {
                     Ok(s) => s,
