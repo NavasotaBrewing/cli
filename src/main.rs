@@ -1,4 +1,5 @@
-use shellfish::{app, Command, Shell, async_fn};
+use shellfish::{Command, Shell};
+use std::collections::HashMap;
 // use std::convert::TryInto;
 use std::error::Error;
 // use std::fmt;
@@ -13,65 +14,69 @@ use nbc_iris::model::{RTU, Driver};
 
 #[tokio::main]
 async fn main() {
-    let device_pool = create_device_pool();
+    let device_pool = create_device_pool().await.expect("Couldn't build device pool");
     
-    let mut shell = Shell::new_async(0_u64, "BCS => ");
+    let mut shell = Shell::new_async(device_pool, "BCS => ");
 
 
     shell.commands.insert(
-        "greet",
-        Command::new("Greets you".to_string(), greet)
+        "list_devices",
+        Command::new("Lists all found controllers".to_string(), list_devices)
     );
 
-    shell.commands.insert(
-        "cat",
-        Command::new_async(
-            "Displays a plaintext file.".to_string(),
-            async_fn!(u64, cat)
-        ),
-    );
-
-    // If there are args provided to the executable, don't start the shell, just run the command
-    let mut args = std::env::args();
-    if args.nth(1).is_some() {
-        // Create the app from the shell.
-        let mut app = app::App::try_from_async(shell).unwrap();
-        // Set the binary name
-        app.handler.proj_name = Some("BCS".to_string());
-        app.load_cache().unwrap();
-        app.run_args_async().await.unwrap();
-    } else {
-        // Run the shell
-        shell.run_async().await.unwrap();
-    }
+    shell.run_async().await.unwrap();
 }
 
-fn create_device_pool() -> DevicePool {
-    let rtu = match RTU::generate(None) {
+async fn create_device_pool() -> Result<DevicePool, Box<dyn std::error::Error>> {
+    let mut rtu = match RTU::generate(None) {
         Ok(rtu) => rtu,
         Err(e) => panic!("Error, couldn't load RTU configuration from file /etc/NavasotaBrewing/rtu_conf.yaml\n{}", e)
     };
 
     let mut device_pool = DevicePool::create();
 
-    // Unfinished, gotta go to class
+    // Totally unrelated to this code or project, but Ron Cross is
+    // the worst professor at the University of Texas at Arlington.
+    // Just for posterity.
+
+    let mut seen: HashMap<u8, bool> = HashMap::new();
+
+    rtu.devices.retain(|dev| {
+        if seen.get(&dev.controller_addr).is_none() {
+            seen.insert(dev.controller_addr, true);
+            return true;
+        }
+        false
+    });
+
+    // TODO: This logic could probably go in iris::Device. it should turn a Device model into a Brewdrivers instrument
     for device in rtu.devices {
         match device.driver {
-            Driver::STR1 => todo!(),
-            Driver::CN7500 => todo!(),
-            Driver::Waveshare => todo!(),
+            Driver::STR1 => {
+                let str1 = STR1::connect(device.controller_addr, &device.port)?;
+                device_pool.add(&device.id, Device::STR1(str1));
+            },
+            Driver::Waveshare => {
+                let waveshare = Waveshare::connect(device.controller_addr, &device.port)?;
+                device_pool.add(&device.id, Device::Waveshare(waveshare));
+            },
+            Driver::CN7500 => {
+                // TODO: figure out how to bubble up the future error and not expect()
+                let cn7500 = CN7500::new(device.controller_addr, &device.port, 19200)
+                    .await
+                    .expect("Couldn't connect to CN7500");
+
+                device_pool.add(&device.id, Device::CN7500(cn7500));
+            },
         }
     }
 
-    device_pool
+    Ok(device_pool)
 }
 
-fn greet(_state: &mut u64, args: Vec<String>) -> Result<(), Box<dyn Error>> {
-    let arg = args.get(1).unwrap();
-    println!("Greetings {}, my good friend.", arg);
-    Ok(())
-}
-
-async fn cat(_state: &mut u64, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+fn list_devices(device_pool: &mut DevicePool, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+    for (key, device) in device_pool.devices() {
+        println!("{}:\t{:?}", key, device);
+    }
     Ok(())
 }
