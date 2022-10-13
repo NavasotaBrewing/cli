@@ -10,5 +10,7 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-brewdrivers = "0.9.0"
-tokio = "0.2"
+nbc_iris = { path = "/home/llamicron/code/NavasotaBrewing/iris" }
+brewdrivers = { path = "/home/llamicron/code/NavasotaBrewing/brewdrivers" }
+tokio = "1.0"
+shellfish = { version = "0.6.0", features = ["rustyline", "app", "async"] }
