@@ -1,13 +1,14 @@
-#![allow(non_snake_case, dead_code, unused_variables)]
+#![allow(non_snake_case, dead_code, unused_variables, unused_mut)]
 use shellfish::{Command, Shell, async_fn};
-use tokio::sync::Mutex;
-use std::collections::HashMap;
 use std::error::Error;
 
 use brewdrivers::controllers::{CN7500, Waveshare, STR1};
-use brewdrivers::controllers::{ControllerPool, Controller};
 
 use nbc_iris::model::{RTU, Driver, Device};
+
+mod commands_table;
+
+const COMMANDS_PAGE: &'static str = include_str!("commands");
 
 #[tokio::main]
 async fn main() {
@@ -16,20 +17,25 @@ async fn main() {
     // Multiple devices can run on a single controller, so we remove all but 1 device so we
     // get 1 device <-> 1 controller
     let mut rtu = RTU::generate(None).expect("Error, couldn't load RTU configuration from file /etc/NavasotaBrewing/rtu_conf.yaml");
-    let mut seen: HashMap<u8, bool> = HashMap::new();
-    rtu.devices.retain(|dev| {
-        if seen.get(&dev.controller_addr).is_none() {
-            seen.insert(dev.controller_addr, true);
-            return true;
-        }
-        false
-    });
+    // let mut seen: HashMap<u8, bool> = HashMap::new();
+    // rtu.devices.retain(|dev| {
+    //     if seen.get(&dev.controller_addr).is_none() {
+    //         seen.insert(dev.controller_addr, true);
+    //         return true;
+    //     }
+    //     false
+    // });
 
     // Copy a list of device ids for use later
     let device_ids = &rtu.devices.iter().map(|dev| dev.id.clone() ).collect::<Vec<String>>();
 
 
     let mut shell = Shell::new_async(rtu, "BCS => ");
+
+    shell.commands.insert(
+        "commands",
+        Command::new("Lists all commands".to_string(), commands)
+    );
 
     for device_id in device_ids {
         shell.commands.insert(
@@ -42,7 +48,14 @@ async fn main() {
     shell.run_async().await.unwrap();
 }
 
-
+fn commands(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+    println!("{}", COMMANDS_PAGE);
+    println!("{}", commands_table::devices_list(&rtu));
+    println!("{}", commands_table::str1_commands());
+    println!("{}", commands_table::waveshare_commands());
+    println!("{}", commands_table::cn7500_commands());
+    Ok(())
+}
 
 async fn controller_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Error>> {
     let controller_id = args.get(0).expect("Arg not provided, this shouldn't be possible");
