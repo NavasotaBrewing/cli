@@ -4,6 +4,10 @@ use term_table::{Table, TableStyle};
 
 use nbc_iris::model::RTU;
 
+fn bold(text: &str) -> String {
+    format!("{}{}{}", termion::style::Bold, text, termion::style::Reset)
+}
+
 fn cmd(cmd: &str, help: &str) -> Row<'static> {
     Row::new(vec![
         TableCell::new_with_alignment(cmd, 1, Alignment::Left),
@@ -17,12 +21,12 @@ pub fn waveshare_commands() -> String {
 
     // Header row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Waveshare Commands", 2, Alignment::Center)
+        TableCell::new_with_alignment(bold("Waveshare Commands"), 2, Alignment::Center)
     ]));
     
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Command", 1, Alignment::Center),
-        TableCell::new_with_alignment("Help", 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Command"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Help"), 1, Alignment::Center),
     ]));
 
     table.add_row(cmd("[relayID]", "Gets a relay status"));
@@ -42,12 +46,12 @@ pub fn str1_commands() -> String {
 
     // Header row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("STR1 Commands", 2, Alignment::Center)
+        TableCell::new_with_alignment(bold("STR1 Commands"), 2, Alignment::Center)
     ]));
     
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Command", 1, Alignment::Center),
-        TableCell::new_with_alignment("Help", 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Command"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Help"), 1, Alignment::Center),
     ]));
 
     table.add_row(cmd("[relayID]", "Gets a relay status"));
@@ -64,12 +68,12 @@ pub fn cn7500_commands() -> String {
 
     // Header row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("CN7500 Commands", 2, Alignment::Center)
+        TableCell::new_with_alignment(bold("CN7500 Commands"), 2, Alignment::Center)
     ]));
     
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Command", 1, Alignment::Center),
-        TableCell::new_with_alignment("Help", 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("CN7500 Commands"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Help"), 1, Alignment::Center),
     ]));
 
     table.add_row(cmd("[deviceID]", "Gets the PV, SV, and status of the relay"));
@@ -94,17 +98,17 @@ pub fn devices_list(rtu: &RTU) -> String {
 
     // Title row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Configured Devices", 6, Alignment::Center)
+        TableCell::new_with_alignment(bold("Configured Devices"), 6, Alignment::Center)
     ]));
 
     // Header row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("ID", 1, Alignment::Center),
-        TableCell::new_with_alignment("Name", 1, Alignment::Center),
-        TableCell::new_with_alignment("Type", 1, Alignment::Center),
-        TableCell::new_with_alignment("Controller Addr", 1, Alignment::Center),
-        TableCell::new_with_alignment("Device Addr", 1, Alignment::Center),
-        TableCell::new_with_alignment("Port", 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("ID"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Name"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Type"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Controller Addr"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Device Addr"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Port"), 1, Alignment::Center),
     ]));
 
     // Values from devices

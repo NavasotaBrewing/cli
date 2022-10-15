@@ -1,38 +1,73 @@
-#![allow(non_snake_case, dead_code, unused_variables, unused_mut)]
-use brewdrivers::drivers::serial::State;
-use shellfish::{Command, Shell, async_fn};
-use std::error::Error;
+#![allow(non_snake_case)]
 use std::io::{stdout, Write};
+use std::error::Error;
 
+use shellfish::{Command, Shell, async_fn};
+use chrono::Local;
+
+use brewdrivers::drivers::serial::State;
 use brewdrivers::controllers::{CN7500, Waveshare, STR1};
 use brewdrivers::controllers::cn7500::Degree;
-
 use nbc_iris::model::{RTU, Driver, Device};
 
 mod commands_table;
 mod handlers;
 
 const COMMANDS_PAGE: &'static str = include_str!("commands");
+const DEFAULT_CONF_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
+const TIME_FORMAT: &'static str = "%F %H:%M:%S";
+
 
 #[tokio::main]
 async fn main() {
 
-    // Load the RTU Digital Twin from the config file and remove duplicate controllers
-    // Multiple devices can run on a single controller, so we remove all but 1 device so we
-    // get 1 device <-> 1 controller
-    let mut rtu = RTU::generate(None).expect("Error, couldn't load RTU configuration from file /etc/NavasotaBrewing/rtu_conf.yaml");
+    let args: Vec<String> = std::env::args().collect();
+
+    // Use either the provided conf file or the default one
+    let conf_file = match args.get(1) {
+        Some(conf_file) => {
+            println!("Using custom config file: {}", conf_file);
+            conf_file
+        },
+        None => {
+            println!("Using default config file: {}", DEFAULT_CONF_FILE);
+            DEFAULT_CONF_FILE
+        }
+    };
+
+    // Load the RTU Digital Twin from the config file
+    let mut rtu = RTU::generate(Some(conf_file)).expect(&format!("Error, couldn't load RTU configuration from file {}", conf_file));
+    println!("RTU config build successfully!");
+    devices(&mut rtu, vec![]).unwrap();
 
     // Copy a list of device ids for use later
     let device_ids = &rtu.devices.iter().map(|dev| dev.id.clone() ).collect::<Vec<String>>();
+    
+    // Create a shell
+    let mut shell = Shell::new_async(rtu, format!("🍺 ==> "));
 
-
-    let mut shell = Shell::new_async(rtu, " 🍺 ==> ");
-
+    // Add a few basic commands
+    // this one lists the available commands, dynamically generated from the RTU configuration
     shell.commands.insert(
         "commands",
         Command::new("Lists all commands".to_string(), commands)
     );
 
+    // This prints a list of connected devices
+    shell.commands.insert(
+        "devices",
+        Command::new("Lists all connected devices".to_string(), devices)
+    );
+
+    shell.commands.insert(
+        "time",
+        Command::new("Prints the current timestamp".to_string(), |_, _| {
+            println!("{}", Local::now().format("%F %H:%M:%S"));
+            Ok(())
+        })
+    );
+
+    // For each device, add that devices id as the command
     for device_id in device_ids {
         shell.commands.insert(
             &device_id,
@@ -40,19 +75,25 @@ async fn main() {
         );
     }
 
-
+    
+    // Run the shell
+    println!("Prost!");
     match shell.run_async().await {
         Ok(_) => {},
         Err(e) => eprintln!("Error: {}", e)
     }
 }
 
-fn commands(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+fn commands(_: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
     println!("{}", COMMANDS_PAGE);
-    println!("{}", commands_table::devices_list(&rtu));
     println!("{}", commands_table::str1_commands());
     println!("{}", commands_table::waveshare_commands());
     println!("{}", commands_table::cn7500_commands());
+    Ok(())
+}
+
+fn devices(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+    println!("{}", commands_table::devices_list(&rtu));
     Ok(())
 }
 

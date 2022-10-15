@@ -1,4 +1,4 @@
-Devices are configured from the config file at /etc/NavasotaBrewing/rtu_conf.yaml
+Devices are configured from the config file you provide as a command line arg (or default /etc/NavasotaBrewing/rtu_conf.yaml)
 
 Commands are run with a device id, not the device name. Some commands affect the controller (like STR1.set_cn). Those commands
 can be run from any device configured to that controller.

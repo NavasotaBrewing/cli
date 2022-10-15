@@ -36,7 +36,7 @@ pub(crate) async fn is_running(cn: &mut CN7500) {
 pub(crate) async fn run(cn: &mut CN7500) {
     // cn.run() returns Ok(()) so we won't use stringify
     match cn.run().await {
-        Ok(res) => println!("Ok!"),
+        Ok(_) => println!("Ok!"),
         Err(e) => eprintln!("Error: {}", e)
     }
 }
@@ -44,7 +44,7 @@ pub(crate) async fn run(cn: &mut CN7500) {
 pub(crate) async fn stop(cn: &mut CN7500) {
     // cn.stop() returns Ok(()) so we won't use stringify
     match cn.stop().await {
-        Ok(res) => println!("Stopped!"),
+        Ok(_) => println!("Stopped!"),
         Err(e) => eprintln!("Error: {}", e)
     }
 }
@@ -66,7 +66,7 @@ pub(crate) async fn set_degrees(cn: &mut CN7500, deg_mode: Degree) {
 pub(crate) async fn watch(device: &Device) {
     println!();
     loop {
-        print!("\n{}\t", Local::now().format("%F %H:%M:%S"));
+        print!("\n{}\t", Local::now().format(crate::TIME_FORMAT));
         // I don't know why but we have to reconnect every time here
         match CN7500::new(device.controller_addr, &device.port, 19200).await {
             Ok(mut cn) => {
