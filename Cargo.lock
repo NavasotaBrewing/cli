@@ -24,6 +24,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "NBC_cli"
+version = "3.0.1"
+dependencies = [
+ "brewdrivers 0.11.1",
+ "chrono",
+ "nbc_iris",
+ "shellfish",
+ "term-table",
+ "termion",
+ "tokio",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -830,19 +843,6 @@ dependencies = [
  "safemem",
  "tempfile",
  "twoway",
-]
-
-[[package]]
-name = "nbc_cli"
-version = "3.0.0"
-dependencies = [
- "brewdrivers 0.11.1",
- "chrono",
- "nbc_iris",
- "shellfish",
- "term-table",
- "termion",
- "tokio",
 ]
 
 [[package]]

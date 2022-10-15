@@ -20,7 +20,7 @@ const TIME_FORMAT: &'static str = "%F %H:%M:%S";
 
 #[tokio::main]
 async fn main() {
-
+    println!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
     let args: Vec<String> = std::env::args().collect();
 
     // Use either the provided conf file or the default one
