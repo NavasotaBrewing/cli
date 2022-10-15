@@ -1,4 +1,5 @@
 #![allow(non_snake_case, dead_code, unused_variables, unused_mut)]
+use brewdrivers::drivers::serial::State;
 use shellfish::{Command, Shell, async_fn};
 use std::error::Error;
 use std::io::{stdout, Write};
@@ -25,7 +26,7 @@ async fn main() {
     let device_ids = &rtu.devices.iter().map(|dev| dev.id.clone() ).collect::<Vec<String>>();
 
 
-    let mut shell = Shell::new_async(rtu, "BCS => ");
+    let mut shell = Shell::new_async(rtu, " 🍺 ==> ");
 
     shell.commands.insert(
         "commands",
@@ -75,15 +76,62 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
 }
 
 async fn handle_str1(device: &Device, args: Vec<String>) {
-    let mut str1 = STR1::connect(device.controller_addr, &device.port).expect(&format!("Couldn't connect to STR1 board with ID: {}", device.id));
-    str1.set_relay(1, brewdrivers::drivers::serial::State::Off).unwrap();
-    todo!()
+    use handlers::str1::*;
+    let mut str1 = match STR1::connect(device.controller_addr, &device.port) {
+        Ok(str1) => str1,
+        Err(err) => {
+            eprintln!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
+            return;
+        }
+    };
+    
+    print!("({})\t", &device.name);
+    stdout().flush().unwrap();
+
+    if args.len() == 1 {
+        get_relay(&mut str1, device.addr);
+    }
+
+    if args.len() == 2 {
+        if let Some(arg1) = args.get(1) {
+            match arg1.as_str() {
+                "list_all" => list_all(&mut str1),
+                "On" | "on" | "1" => set_relay(&mut str1, device.addr, State::On),
+                "Off" | "off" | "0" => set_relay(&mut str1, device.addr, State::Off),
+                _ => eprintln!("Argument `{}` not found, or you didn't provide enough arguments", arg1)
+            }
+        }
+    }
+
+    if args.len() == 3 {
+        if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
+            match arg1.as_str() {
+                "set_cn" => {
+                    match arg2.parse::<u8>() {
+                        Ok(new_cn) => set_cn(&mut str1, new_cn),
+                        Err(e) => eprintln!("Couldn't parse new controller number (0-255): {}", e)
+                    }
+                },
+                _ => eprintln!("Argument `{}` not found, or you didn't provide enough arguments", arg1)
+            }
+        }
+    }
+
+    if args.len() > 3 {
+        eprintln!("Too many arguments ({}) provided: {:?}", args.len(), args);
+    }
 }
 
 async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // bring in all the CN7500
     use handlers::cn7500::*;
-    let mut cn = CN7500::new(device.controller_addr, &device.port, 19200).await.unwrap();
+    let mut cn = match CN7500::new(device.controller_addr, &device.port, 19200).await {
+        Ok(cn) => cn,
+        Err(err) => {
+            eprintln!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
+            return;
+        }
+    };
     
     print!("({})\t", &device.name);
     stdout().flush().unwrap();
@@ -104,7 +152,8 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
                 "is_running" => is_running(&mut cn).await,
                 "run" => run(&mut cn).await,
                 "stop" => stop(&mut cn).await,
-                _ => eprintln!("Argument {:?} not found, or you didn't provide enought arguments", arg1)
+                "watch" => watch(&device).await,
+                _ => eprintln!("Argument {:?} not found, or you didn't provide enough arguments", arg1)
             }
         }
     }
@@ -134,7 +183,7 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
     }
 
     if args.len() > 3 {
-        eprintln!("Too many arguments ({}) provided", args.len());
+        eprintln!("Too many arguments ({}) provided: {:?}", args.len(), args);
     }
-    
+
 }

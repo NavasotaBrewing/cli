@@ -25,13 +25,13 @@ pub fn waveshare_commands() -> String {
         TableCell::new_with_alignment("Help", 1, Alignment::Center),
     ]));
 
-    table.add_row(cmd("$ [relayID]", "Gets a relay status"));
-    table.add_row(cmd("$ [relayID] list_all", "Lists states of this and all the neighboring relays on this controller"));
-    table.add_row(cmd("$ [relayID] [On|Off|1|0]", "Turns a relay on or off"));
-    table.add_row(cmd("$ [relayID] set_all [On|Off|1|0]", "Sets this and all the neighboring relays on this controller"));
-    table.add_row(cmd("$ [relayID] get_cn", "Attempts to find the controller number the board is set to. The configured controller number (from the conf file) doesn't matter"));
-    table.add_row(cmd("$ [relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
-    table.add_row(cmd("$ [relayID] software_revision", "Lists the software revision currently on the board"));
+    table.add_row(cmd("[relayID]", "Gets a relay status"));
+    table.add_row(cmd("[relayID] list_all", "Lists states of this and all the neighboring relays on this controller"));
+    table.add_row(cmd("[relayID] [On|Off|1|0]", "Turns a relay on or off"));
+    table.add_row(cmd("[relayID] set_all [On|Off|1|0]", "Sets this and all the neighboring relays on this controller"));
+    table.add_row(cmd("[relayID] get_cn", "Attempts to find the controller number the board is set to. The configured controller number (from the conf file) doesn't matter"));
+    table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
+    table.add_row(cmd("[relayID] software_revision", "Lists the software revision currently on the board"));
 
     table.render()
 }
@@ -50,10 +50,10 @@ pub fn str1_commands() -> String {
         TableCell::new_with_alignment("Help", 1, Alignment::Center),
     ]));
 
-    table.add_row(cmd("$ [relayID]", "Gets a relay status"));
-    table.add_row(cmd("$ [relayID] list_all", "Lists states of all the neighboring relays on this controller"));
-    table.add_row(cmd("$ [relayID] [On|Off|1|0]", "Turns a relay on or off"));
-    table.add_row(cmd("$ [relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
+    table.add_row(cmd("[relayID]", "Gets a relay status"));
+    table.add_row(cmd("[relayID] list_all", "Lists states of all the neighboring relays on this controller"));
+    table.add_row(cmd("[relayID] [On|Off|1|0]", "Turns a relay on or off"));
+    table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
 
     table.render()
 }
@@ -72,14 +72,15 @@ pub fn cn7500_commands() -> String {
         TableCell::new_with_alignment("Help", 1, Alignment::Center),
     ]));
 
-    table.add_row(cmd("$ [deviceID]", "Gets the PV, SV, and status of the relay"));
-    table.add_row(cmd("$ [deviceID] pv", "Gets the Process Value (actual)"));
-    table.add_row(cmd("$ [deviceID] sv", "Gets the Setpoint Value (target)"));
-    table.add_row(cmd("$ [deviceID] set [#.#]", "Sets the SV. Use a decimal number"));
-    table.add_row(cmd("$ [deviceID] is_running", "Returns the status of the relay"));
-    table.add_row(cmd("$ [deviceID] run", "Turns the relay on"));
-    table.add_row(cmd("$ [deviceID] stop", "Turns the relay off"));
-    table.add_row(cmd("$ [deviceID] degrees [F|C]", "Sets degree units to F or C"));
+    table.add_row(cmd("[deviceID]", "Gets the PV, SV, and status of the relay"));
+    table.add_row(cmd("[deviceID] pv", "Gets the Process Value (actual)"));
+    table.add_row(cmd("[deviceID] sv", "Gets the Setpoint Value (target)"));
+    table.add_row(cmd("[deviceID] set [#.#]", "Sets the SV. Use a decimal number"));
+    table.add_row(cmd("[deviceID] is_running", "Returns the status of the relay"));
+    table.add_row(cmd("[deviceID] run", "Turns the relay on"));
+    table.add_row(cmd("[deviceID] stop", "Turns the relay off"));
+    table.add_row(cmd("[deviceID] degrees [F|C]", "Sets degree units to F or C"));
+    table.add_row(cmd("[deviceID] watch", "Prints the PV and SV every few seconds until you quit"));
     
     table.render()
 }

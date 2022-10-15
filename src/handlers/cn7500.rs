@@ -1,25 +1,22 @@
 //! Contains the functionality of the cn7500 commands
-use std::fmt::Display;
+
+use chrono::Local;
+use nbc_iris::model::Device;
+use std::thread::{sleep};
+use std::time::Duration;
+
+use std::io::{Write, stdout};
 
 use brewdrivers::controllers::CN7500;
-use brewdrivers::drivers::InstrumentError;
 use brewdrivers::controllers::cn7500::Degree;
 
-/// Converts Result<T, InstrumentError> into the string form of the value or the error.
-/// This is used to process values as CLI output, so that errors will be reported but will not panic,
-/// and to reduce boilerplate.
-fn stringify<T: Display>(value: Result<T, InstrumentError>) -> String {
-    match value {
-        Ok(val) => format!("{}", val),
-        Err(e) => format!("Error: {}", e)
-    }
-}
+use super::stringify;
 
 pub(crate) async fn get_all(cn: &mut CN7500) {
     println!(
         "{{ PV: {}, SV: {}, Running: {} }}",
         stringify(cn.get_pv().await),
-        stringify(cn.get_sv().await), 
+        stringify(cn.get_sv().await),
         stringify(cn.is_running().await)
     );
 }
@@ -63,5 +60,26 @@ pub(crate) async fn set_degrees(cn: &mut CN7500, deg_mode: Degree) {
     match cn.set_degrees(deg_mode.clone()).await {
         Ok(_) => println!("Degree mode set to {:?}", deg_mode),
         Err(e) => eprintln!("Error: {}", e)
+    }
+}
+
+pub(crate) async fn watch(device: &Device) {
+    println!();
+    loop {
+        print!("\n{}\t", Local::now().format("%F %H:%M:%S"));
+        // I don't know why but we have to reconnect every time here
+        match CN7500::new(device.controller_addr, &device.port, 19200).await {
+            Ok(mut cn) => {
+                println!(
+                    "{{ PV: {}, SV: {}, Running: {} }}",
+                    stringify(cn.get_pv().await),
+                    stringify(cn.get_sv().await),
+                    stringify(cn.is_running().await)
+                );
+            },
+            Err(e) => eprintln!("Error: {}", e)
+        }
+        stdout().flush().unwrap();
+        sleep(Duration::from_secs(5));
     }
 }
