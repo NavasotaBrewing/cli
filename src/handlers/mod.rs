@@ -4,6 +4,7 @@ use brewdrivers::drivers::InstrumentError;
 
 pub mod cn7500;
 pub mod str1;
+pub mod waveshare;
 
 
 /// Converts Result<T, InstrumentError> into the string form of the value or the error.

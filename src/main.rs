@@ -71,12 +71,65 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
 }
 
 async fn handle_ws(device: &Device, args: Vec<String>) {
-    let mut ws = Waveshare::connect(device.controller_addr, &device.port).expect(&format!("Couldn't connect to Waveshare board with ID: {}", device.id));
-    todo!()
+    use handlers::waveshare as ws;
+    let mut ws = match Waveshare::connect(device.controller_addr, &device.port) {
+        Ok(ws) => ws,
+        Err(e) => {
+            eprintln!("Couldn't connect to Waveshare: Error: {}", e);
+            return;
+        }
+    };
+
+    print!("({})\t", &device.name);
+    stdout().flush().unwrap();
+
+    if args.len() == 1 {
+        // No arguments
+
+        ws::get_relay(&mut ws, device.addr);
+    }
+
+    if args.len() == 2 {
+        // 1 argument
+        if let Some(arg1) = args.get(1) {
+            match arg1.as_str() {
+                "list_all" => ws::list_all(&mut ws),
+                "On" | "on" | "1" => ws::set_relay(&mut ws, device.addr, State::On),
+                "Off" | "off" | "0" => ws::set_relay(&mut ws, device.addr, State::Off),
+                "get_cn" => ws::get_cn(&mut ws),
+                "software_revision" => ws::software_revision(&mut ws),
+                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+            }
+        }
+    }
+
+    if args.len() == 3 {
+        // 2 arguments
+
+        if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
+            match arg1.as_str() {
+                "set_all" => {
+                    match arg2.as_str() {
+                        "On" | "on" | "1" => ws::set_all(&mut ws, State::On),
+                        "Off" | "off" | "0" => ws::set_all(&mut ws, State::Off),
+                        _ => eprintln!("Unknown argument `{}`, expecting [On|Off|1|0]", arg2),
+                    }
+                },
+                "set_cn" => {
+                    match arg2.parse::<u8>() {
+                        Ok(new_cn) => ws::set_cn(&mut ws, new_cn),
+                        Err(e) => eprintln!("Error, couldn't parse controller number (0-254): {}", e)
+                    }
+                },
+                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+            }
+        }
+    }
+
 }
 
 async fn handle_str1(device: &Device, args: Vec<String>) {
-    use handlers::str1::*;
+    use handlers::str1 as s;
     let mut str1 = match STR1::connect(device.controller_addr, &device.port) {
         Ok(str1) => str1,
         Err(err) => {
@@ -89,16 +142,16 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
     stdout().flush().unwrap();
 
     if args.len() == 1 {
-        get_relay(&mut str1, device.addr);
+        s::get_relay(&mut str1, device.addr);
     }
 
     if args.len() == 2 {
         if let Some(arg1) = args.get(1) {
             match arg1.as_str() {
-                "list_all" => list_all(&mut str1),
-                "On" | "on" | "1" => set_relay(&mut str1, device.addr, State::On),
-                "Off" | "off" | "0" => set_relay(&mut str1, device.addr, State::Off),
-                _ => eprintln!("Argument `{}` not found, or you didn't provide enough arguments", arg1)
+                "list_all" => s::list_all(&mut str1),
+                "On" | "on" | "1" => s::set_relay(&mut str1, device.addr, State::On),
+                "Off" | "off" | "0" => s::set_relay(&mut str1, device.addr, State::Off),
+                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -108,11 +161,11 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
             match arg1.as_str() {
                 "set_cn" => {
                     match arg2.parse::<u8>() {
-                        Ok(new_cn) => set_cn(&mut str1, new_cn),
+                        Ok(new_cn) => s::set_cn(&mut str1, new_cn),
                         Err(e) => eprintln!("Couldn't parse new controller number (0-255): {}", e)
                     }
                 },
-                _ => eprintln!("Argument `{}` not found, or you didn't provide enough arguments", arg1)
+                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -124,7 +177,7 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 
 async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // bring in all the CN7500
-    use handlers::cn7500::*;
+    use handlers::cn7500 as c;
     let mut cn = match CN7500::new(device.controller_addr, &device.port, 19200).await {
         Ok(cn) => cn,
         Err(err) => {
@@ -139,21 +192,20 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
     if args.len() == 1 {
         // 0 argument commands
 
-        get_all(&mut cn).await;
+        c::get_all(&mut cn).await;
     }
-
     
     if args.len() == 2 {
         // 1 arg commands
         if let Some(arg1) = args.get(1) {
             match arg1.as_str() {
-                "pv" => get_pv(&mut cn).await,
-                "sv" => get_sv(&mut cn).await,
-                "is_running" => is_running(&mut cn).await,
-                "run" => run(&mut cn).await,
-                "stop" => stop(&mut cn).await,
-                "watch" => watch(&device).await,
-                _ => eprintln!("Argument {:?} not found, or you didn't provide enough arguments", arg1)
+                "pv" => c::get_pv(&mut cn).await,
+                "sv" => c::get_sv(&mut cn).await,
+                "is_running" => c::is_running(&mut cn).await,
+                "run" => c::run(&mut cn).await,
+                "stop" => c::stop(&mut cn).await,
+                "watch" => c::watch(&device).await,
+                _ => eprintln!("Argument {:?} not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -164,18 +216,18 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
             match arg1.as_str() {
                 "set" => {
                     match arg2.parse::<f64>() {
-                        Ok(new_sv) => set_sv(&mut cn, new_sv).await,
+                        Ok(new_sv) => c::set_sv(&mut cn, new_sv).await,
                         Err(e) => eprintln!("`set` requires a floating point number as an argument: {}", e)
                     }
                 },
                 "degrees" => {
                     match arg2.as_str() {
-                        "F" => set_degrees(&mut cn, Degree::Fahrenheit).await,
-                        "C" => set_degrees(&mut cn, Degree::Celsius).await,
+                        "F" => c::set_degrees(&mut cn, Degree::Fahrenheit).await,
+                        "C" => c::set_degrees(&mut cn, Degree::Celsius).await,
                         _ => eprintln!("Unkown argument `{}`", arg2),
                     }
                 },
-                _ => eprintln!("Argument `{}` not found, or you didn't provide enough arguments", arg1)
+                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         } else {
             eprintln!("Couldn't retrieve args 1 and 2");
