@@ -31,8 +31,8 @@ pub fn waveshare_commands() -> String {
 
     table.add_row(cmd("[relayID]", "Gets a relay status"));
     table.add_row(cmd("[relayID] list_all", "Lists states of this and all the neighboring relays on this controller"));
-    table.add_row(cmd("[relayID] [On|Off|1|0]", "Turns a relay on or off"));
-    table.add_row(cmd("[relayID] set_all [On|Off|1|0]", "Sets this and all the neighboring relays on this controller"));
+    table.add_row(cmd("[relayID] [On|Off]", "Turns a relay on or off"));
+    table.add_row(cmd("[relayID] set_all [On|Off]", "Sets this and all the neighboring relays on this controller"));
     table.add_row(cmd("[relayID] get_cn", "Attempts to find the controller number the board is set to. The configured controller number (from the conf file) doesn't matter"));
     table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
     table.add_row(cmd("[relayID] software_revision", "Lists the software revision currently on the board"));
@@ -56,7 +56,7 @@ pub fn str1_commands() -> String {
 
     table.add_row(cmd("[relayID]", "Gets a relay status"));
     table.add_row(cmd("[relayID] list_all", "Lists states of all the neighboring relays on this controller"));
-    table.add_row(cmd("[relayID] [On|Off|1|0]", "Turns a relay on or off"));
+    table.add_row(cmd("[relayID] [On|Off]", "Turns a relay on or off"));
     table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
 
     table.render()
@@ -116,7 +116,7 @@ pub fn devices_list(rtu: &RTU) -> String {
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(&device.id, 1, Alignment::Left),
             TableCell::new_with_alignment(&device.name, 1, Alignment::Left),
-            TableCell::new_with_alignment(&device.driver.to_string(), 1, Alignment::Left),
+            TableCell::new_with_alignment(&device.controller.to_string(), 1, Alignment::Left),
             TableCell::new_with_alignment(&device.controller_addr, 1, Alignment::Left),
             TableCell::new_with_alignment(&device.addr, 1, Alignment::Left),
             TableCell::new_with_alignment(&device.port, 1, Alignment::Left)

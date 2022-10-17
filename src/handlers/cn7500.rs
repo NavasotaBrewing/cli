@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use std::io::{Write, stdout};
 
-use brewdrivers::controllers::CN7500;
+use brewdrivers::controllers::*;
 use brewdrivers::controllers::cn7500::Degree;
 
 use super::stringify;
@@ -68,7 +68,7 @@ pub(crate) async fn watch(device: &Device) {
     loop {
         print!("\n{}\t", Local::now().format(crate::TIME_FORMAT));
         // I don't know why but we have to reconnect every time here
-        match CN7500::new(device.controller_addr, &device.port, 19200).await {
+        match CN7500::connect(device.controller_addr, &device.port).await {
             Ok(mut cn) => {
                 println!(
                     "{{ PV: {}, SV: {}, Running: {} }}",

@@ -1,5 +1,4 @@
-use brewdrivers::controllers::Waveshare;
-use brewdrivers::drivers::serial::State;
+use brewdrivers::controllers::*;
 
 use super::stringify;
 
@@ -25,7 +24,7 @@ pub(crate) fn list_all(ws: &mut Waveshare) {
     }
 }
 
-pub(crate) fn set_relay(ws: &mut Waveshare, relay_num: u8, new_state: State) {
+pub(crate) fn set_relay(ws: &mut Waveshare, relay_num: u8, new_state: BinaryState) {
     println!("set relay {} to {}", relay_num, new_state);
     match ws.set_relay(relay_num, new_state) {
         Ok(_) => println!("Ok!"),
@@ -43,7 +42,7 @@ pub(crate) fn software_revision(ws: &mut Waveshare) {
     println!("{}", stringify(ws.software_revision()));
 }
 
-pub(crate) fn set_all(ws: &mut Waveshare, new_state: State) {
+pub(crate) fn set_all(ws: &mut Waveshare, new_state: BinaryState) {
     println!("Setting all to {}", new_state);
     match ws.set_all_relays(new_state) {
         Ok(_) => println!("Ok!"),

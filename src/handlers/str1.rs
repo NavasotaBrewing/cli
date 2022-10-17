@@ -1,6 +1,6 @@
 use super::stringify;
 
-use brewdrivers::{controllers::STR1, drivers::serial::State};
+use brewdrivers::controllers::*;
 
 
 pub fn get_relay(str1: &mut STR1, addr: u8) {
@@ -14,7 +14,7 @@ pub fn list_all(str1: &mut STR1) {
     }
 }
 
-pub fn set_relay(str1: &mut STR1, relay_num: u8, new_state: State) {
+pub fn set_relay(str1: &mut STR1, relay_num: u8, new_state: BinaryState) {
     match str1.set_relay(relay_num, new_state) {
         Ok(_) => println!("Ok!"),
         Err(e) => eprintln!("Error: {}", e)

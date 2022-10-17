@@ -10,8 +10,10 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-nbc_iris = "0.5.1"
-brewdrivers = "0.11.1"
+# nbc_iris = "0.5.1"
+nbc_iris = { path = "/home/llamicron/code/NavasotaBrewing/iris" }
+# brewdrivers = "0.11.1"
+brewdrivers = { path = "/home/llamicron/code/NavasotaBrewing/brewdrivers" }
 tokio = "1.0"
 shellfish = { version = "0.6.0", features = ["rustyline", "app", "async"] }
 term-table = "1.3.2"

@@ -5,10 +5,9 @@ use std::error::Error;
 use shellfish::{Command, Shell, async_fn};
 use chrono::Local;
 
-use brewdrivers::drivers::serial::State;
-use brewdrivers::controllers::{CN7500, Waveshare, STR1};
+use brewdrivers::controllers::*;
 use brewdrivers::controllers::cn7500::Degree;
-use nbc_iris::model::{RTU, Driver, Device};
+use nbc_iris::model::{RTU, Device};
 
 mod commands_table;
 mod handlers;
@@ -101,10 +100,10 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
     let device_id = args.get(0).expect("Arg not provided, this shouldn't be possible");
 
     if let Some(dev) = rtu.devices.iter().find(|dev| dev.id == *device_id ) {
-        match dev.driver {
-            Driver::STR1 => handle_str1(dev, args).await,
-            Driver::CN7500 => handle_cn7500(dev, args).await,
-            Driver::Waveshare => handle_ws(dev, args).await,
+        match dev.controller {
+            Controller::STR1 => handle_str1(dev, args).await,
+            Controller::CN7500 => handle_cn7500(dev, args).await,
+            Controller::Waveshare => handle_ws(dev, args).await,
         }
     }
 
@@ -133,14 +132,19 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
     if args.len() == 2 {
         // 1 argument
         if let Some(arg1) = args.get(1) {
+            if let Ok(state) = arg1.parse::<BinaryState>() {
+                ws::set_relay(&mut ws, device.addr, state);
+                return;
+            }
+
             match arg1.as_str() {
                 "list_all" => ws::list_all(&mut ws),
-                "On" | "on" | "1" => ws::set_relay(&mut ws, device.addr, State::On),
-                "Off" | "off" | "0" => ws::set_relay(&mut ws, device.addr, State::Off),
                 "get_cn" => ws::get_cn(&mut ws),
                 "software_revision" => ws::software_revision(&mut ws),
                 _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
+            
+            
         }
     }
 
@@ -150,10 +154,9 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
         if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
             match arg1.as_str() {
                 "set_all" => {
-                    match arg2.as_str() {
-                        "On" | "on" | "1" => ws::set_all(&mut ws, State::On),
-                        "Off" | "off" | "0" => ws::set_all(&mut ws, State::Off),
-                        _ => eprintln!("Unknown argument `{}`, expecting [On|Off|1|0]", arg2),
+                    match arg2.parse::<BinaryState>() {
+                        Ok(state) => ws::set_all(&mut ws, state),
+                        Err(e) => eprintln!("Error: {}", e)
                     }
                 },
                 "set_cn" => {
@@ -188,10 +191,13 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 
     if args.len() == 2 {
         if let Some(arg1) = args.get(1) {
+            if let Ok(state) = arg1.parse::<BinaryState>() {
+                s::set_relay(&mut str1, device.addr, state);
+                return;
+            }
+            
             match arg1.as_str() {
                 "list_all" => s::list_all(&mut str1),
-                "On" | "on" | "1" => s::set_relay(&mut str1, device.addr, State::On),
-                "Off" | "off" | "0" => s::set_relay(&mut str1, device.addr, State::Off),
                 _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
@@ -219,7 +225,7 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // bring in all the CN7500
     use handlers::cn7500 as c;
-    let mut cn = match CN7500::new(device.controller_addr, &device.port, 19200).await {
+    let mut cn = match CN7500::connect(device.controller_addr, &device.port).await {
         Ok(cn) => cn,
         Err(err) => {
             eprintln!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);

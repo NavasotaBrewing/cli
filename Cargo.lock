@@ -27,7 +27,7 @@ dependencies = [
 name = "NBC_cli"
 version = "3.0.1"
 dependencies = [
- "brewdrivers 0.11.1",
+ "brewdrivers",
  "chrono",
  "nbc_iris",
  "shellfish",
@@ -94,30 +94,14 @@ dependencies = [
 
 [[package]]
 name = "brewdrivers"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05b7201b863665dbf326fe11191046619da4236a129557bf3453194381e690dd"
-dependencies = [
- "crc",
- "futures",
- "hex",
- "serde",
- "serialport",
- "tokio",
- "tokio-modbus",
- "tokio-serial",
-]
-
-[[package]]
-name = "brewdrivers"
 version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed820f859b5af64f252c8d4d8a3d74d27eebd8f133fc48d4ba56bf92ab81793b"
 dependencies = [
+ "async-trait",
  "crc",
  "derivative",
  "futures",
  "hex",
+ "serde",
  "serialport",
  "thiserror",
  "tokio",
@@ -848,10 +832,8 @@ dependencies = [
 [[package]]
 name = "nbc_iris"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e55b037f624a7938085419d5adb563cafa977a69af95240916a7180a7f550052"
 dependencies = [
- "brewdrivers 0.10.0",
+ "brewdrivers",
  "serde",
  "serde_json",
  "serde_yaml",
