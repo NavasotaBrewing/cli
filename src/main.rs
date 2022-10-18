@@ -13,7 +13,7 @@ mod commands_table;
 mod handlers;
 
 const COMMANDS_PAGE: &'static str = include_str!("commands");
-const DEFAULT_CONF_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
+const CONFIG_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
 const TIME_FORMAT: &'static str = "%F %H:%M:%S";
 
 
@@ -22,21 +22,22 @@ async fn main() {
     println!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
     let args: Vec<String> = std::env::args().collect();
 
-    // Use either the provided conf file or the default one
-    let conf_file = match args.get(1) {
-        Some(conf_file) => {
-            println!("Using custom config file: {}", conf_file);
-            conf_file
-        },
-        None => {
-            println!("Using default config file: {}", DEFAULT_CONF_FILE);
-            DEFAULT_CONF_FILE
+    if args.len() > 1 {
+        println!("You provided `{}`, attempting to use that as a config file", args.get(1).unwrap());
+    } else {
+        println!("Using the default config file: `{}`", CONFIG_FILE);
+    }
+
+    // Load the RTU Digital Twin from the config file
+    let mut rtu = match RTU::generate(args.get(1).map(|v| v.as_str() )) {
+        Ok(rtu) => rtu,
+        Err(e) => {
+            eprintln!("Error: Couldn't deserialize config file: {}", e);
+            std::process::exit(1);
         }
     };
 
-    // Load the RTU Digital Twin from the config file
-    let mut rtu = RTU::generate(Some(conf_file)).expect(&format!("Error, couldn't load RTU configuration from file {}", conf_file));
-    println!("RTU config build successfully!");
+    println!("RTU config built successfully!");
     devices(&mut rtu, vec![]).unwrap();
 
     // Copy a list of device ids for use later
