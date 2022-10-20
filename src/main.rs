@@ -2,8 +2,8 @@
 use std::error::Error;
 
 use env_logger::Env;
-use log::{error, warn, info};
-use shellfish::{Command, Shell, async_fn};
+use log::{error, info};
+use shellfish::{Command, Shell, async_fn, app::App};
 use chrono::Local;
 
 use brewdrivers::controllers::*;
@@ -23,45 +23,37 @@ async fn main() {
     // Initialize logging
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).format_timestamp(None).init();
 
-    info!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
-    let args: Vec<String> = std::env::args().collect();
-
-    // This will extract the config_path from the cli or the default CONFIG_FILE const
-    // The first command is always exec
-    let config_path = match args.get(1) {
-        Some(arg1) => {
-            if arg1 != "exec" {
-                warn!("You provided `{}`, attempting to use that as a config file", args.get(1).unwrap());
-                arg1.as_str()
-            } else {
-                info!("Using the default config file: `{}`", CONFIG_FILE);
-                CONFIG_FILE
-            } 
-        },
-        None => {
-            info!("Using the default config file: `{}`", CONFIG_FILE);
-            CONFIG_FILE
-        }
-    };
+    // Connect the command line arguments
+    let mut args: Vec<String> = std::env::args().collect();
+    
+    // if this is true, the program will parse the given CLI arguments and use those as a command.
+    // If it's false, the shell will be opened.
+    let mut run_exec = false;
+    
+    // If the first arg is `exec`, then we want to run the application
+    // with the provided command, not open the shell.
+    if let Some(arg1) = args.get(1) {
+        // If we found arg1 to be exec, set a flag and remove `exec` from the args
+        // So that we can parse the commands properly
+        run_exec = arg1 == "exec";
+        args.remove(1);
+    }
 
 
     // Load the RTU Digital Twin from the config file
-    let mut rtu = match RTU::generate(Some(config_path)) {
+    let mut rtu = match RTU::generate(Some(CONFIG_FILE)) {
         Ok(rtu) => rtu,
         Err(e) => {
-            error!("Error: Couldn't deserialize config file: {}", e);
+            error!("Couldn't deserialize config file: {}", e);
             std::process::exit(1);
         }
     };
-
-    info!("RTU config built successfully!");
-    devices(&mut rtu, vec![]).unwrap();
 
     // Copy a list of device ids for use later
     let device_ids = &rtu.devices.iter().map(|dev| dev.id.clone() ).collect::<Vec<String>>();
     
     // Create a shell
-    let mut shell = Shell::new_async(rtu, format!("🍺 ==> "));
+    let mut shell = Shell::new_async(rtu.clone(), format!("🍺 ==> "));
 
     // Add a few basic commands
     // this one lists the available commands, dynamically generated from the RTU configuration
@@ -93,13 +85,26 @@ async fn main() {
     }
 
     
-    // Run the shell
-    println!("Prost!");
     
-    match shell.run_async().await {
-        Ok(_) => {},
-        Err(e) => error!("Error: {}", e)
+    // Run either the cli or the shell
+    if run_exec {
+        // CLI
+        let mut app = App::try_from_async(shell).unwrap();
+        app.handler.proj_name = Some(String::from("nbc_cli"));
+        app.load_cache().unwrap();
+        app.run_vec_async(args).await.unwrap();
+    } else {
+        // Run the shell
+        info!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
+        info!("RTU config built successfully from file `{CONFIG_FILE}`");
+        devices(&mut rtu, vec![]).unwrap();
+        println!("Prost!");
+        match shell.run_async().await {
+            Ok(_) => {},
+            Err(e) => error!("Error: {}", e)
+        }
     }
+
 }
 
 fn commands(_: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
