@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
-use std::io::{stdout, Write};
 use std::error::Error;
 
+use env_logger::Env;
+use log::{error, warn, info};
 use shellfish::{Command, Shell, async_fn};
 use chrono::Local;
 
@@ -19,25 +20,41 @@ const TIME_FORMAT: &'static str = "%F %H:%M:%S";
 
 #[tokio::main]
 async fn main() {
-    println!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
+    // Initialize logging
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).format_timestamp(None).init();
+
+    info!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
     let args: Vec<String> = std::env::args().collect();
 
-    if args.len() > 1 {
-        println!("You provided `{}`, attempting to use that as a config file", args.get(1).unwrap());
-    } else {
-        println!("Using the default config file: `{}`", CONFIG_FILE);
-    }
+    // This will extract the config_path from the cli or the default CONFIG_FILE const
+    // The first command is always exec
+    let config_path = match args.get(1) {
+        Some(arg1) => {
+            if arg1 != "exec" {
+                warn!("You provided `{}`, attempting to use that as a config file", args.get(1).unwrap());
+                arg1.as_str()
+            } else {
+                info!("Using the default config file: `{}`", CONFIG_FILE);
+                CONFIG_FILE
+            } 
+        },
+        None => {
+            info!("Using the default config file: `{}`", CONFIG_FILE);
+            CONFIG_FILE
+        }
+    };
+
 
     // Load the RTU Digital Twin from the config file
-    let mut rtu = match RTU::generate(args.get(1).map(|v| v.as_str() )) {
+    let mut rtu = match RTU::generate(Some(config_path)) {
         Ok(rtu) => rtu,
         Err(e) => {
-            eprintln!("Error: Couldn't deserialize config file: {}", e);
+            error!("Error: Couldn't deserialize config file: {}", e);
             std::process::exit(1);
         }
     };
 
-    println!("RTU config built successfully!");
+    info!("RTU config built successfully!");
     devices(&mut rtu, vec![]).unwrap();
 
     // Copy a list of device ids for use later
@@ -78,9 +95,10 @@ async fn main() {
     
     // Run the shell
     println!("Prost!");
+    
     match shell.run_async().await {
         Ok(_) => {},
-        Err(e) => eprintln!("Error: {}", e)
+        Err(e) => error!("Error: {}", e)
     }
 }
 
@@ -116,13 +134,11 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
     let mut ws = match Waveshare::connect(device.controller_addr, &device.port) {
         Ok(ws) => ws,
         Err(e) => {
-            eprintln!("Couldn't connect to Waveshare: Error: {}", e);
+            error!("Couldn't connect to Waveshare: {}", e);
             return;
         }
     };
 
-    print!("({})\t", &device.name);
-    stdout().flush().unwrap();
 
     if args.len() == 1 {
         // No arguments
@@ -142,7 +158,7 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
                 "list_all" => ws::list_all(&mut ws),
                 "get_cn" => ws::get_cn(&mut ws),
                 "software_revision" => ws::software_revision(&mut ws),
-                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
             
             
@@ -157,16 +173,16 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
                 "set_all" => {
                     match arg2.parse::<BinaryState>() {
                         Ok(state) => ws::set_all(&mut ws, state),
-                        Err(e) => eprintln!("Error: {}", e)
+                        Err(e) => error!("{}", e)
                     }
                 },
                 "set_cn" => {
                     match arg2.parse::<u8>() {
                         Ok(new_cn) => ws::set_cn(&mut ws, new_cn),
-                        Err(e) => eprintln!("Error, couldn't parse controller number (0-254): {}", e)
+                        Err(e) => error!("Error, couldn't parse controller number (0-254): {}", e)
                     }
                 },
-                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -178,13 +194,12 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
     let mut str1 = match STR1::connect(device.controller_addr, &device.port) {
         Ok(str1) => str1,
         Err(err) => {
-            eprintln!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
+            error!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
             return;
         }
     };
     
-    print!("({})\t", &device.name);
-    stdout().flush().unwrap();
+
 
     if args.len() == 1 {
         s::get_relay(&mut str1, device.addr);
@@ -199,7 +214,7 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
             
             match arg1.as_str() {
                 "list_all" => s::list_all(&mut str1),
-                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -210,16 +225,16 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
                 "set_cn" => {
                     match arg2.parse::<u8>() {
                         Ok(new_cn) => s::set_cn(&mut str1, new_cn),
-                        Err(e) => eprintln!("Couldn't parse new controller number (0-255): {}", e)
+                        Err(e) => error!("Couldn't parse new controller number (0-255): {}", e)
                     }
                 },
-                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
 
     if args.len() > 3 {
-        eprintln!("Too many arguments ({}) provided: {:?}", args.len(), args);
+        error!("Too many arguments ({}) provided: {:?}", args.len(), args);
     }
 }
 
@@ -229,13 +244,12 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
     let mut cn = match CN7500::connect(device.controller_addr, &device.port).await {
         Ok(cn) => cn,
         Err(err) => {
-            eprintln!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
+            error!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
             return;
         }
     };
     
-    print!("({})\t", &device.name);
-    stdout().flush().unwrap();
+
 
     if args.len() == 1 {
         // 0 argument commands
@@ -253,7 +267,7 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
                 "run" => c::run(&mut cn).await,
                 "stop" => c::stop(&mut cn).await,
                 "watch" => c::watch(&device).await,
-                _ => eprintln!("Argument {:?} not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument {:?} not found, or you provided the wrong number of arguments", arg1)
             }
         }
     }
@@ -265,25 +279,25 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
                 "set" => {
                     match arg2.parse::<f64>() {
                         Ok(new_sv) => c::set_sv(&mut cn, new_sv).await,
-                        Err(e) => eprintln!("`set` requires a floating point number as an argument: {}", e)
+                        Err(e) => error!("`set` requires a floating point number as an argument: {}", e)
                     }
                 },
                 "degrees" => {
                     match arg2.as_str() {
                         "F" => c::set_degrees(&mut cn, Degree::Fahrenheit).await,
                         "C" => c::set_degrees(&mut cn, Degree::Celsius).await,
-                        _ => eprintln!("Unkown argument `{}`", arg2),
+                        _ => error!("Unkown argument `{}`", arg2),
                     }
                 },
-                _ => eprintln!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
             }
         } else {
-            eprintln!("Couldn't retrieve args 1 and 2");
+            error!("Couldn't retrieve args 1 and 2");
         }
     }
 
     if args.len() > 3 {
-        eprintln!("Too many arguments ({}) provided: {:?}", args.len(), args);
+        error!("Too many arguments ({}) provided: {:?}", args.len(), args);
     }
 
 }
