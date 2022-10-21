@@ -866,9 +866,9 @@ dependencies = [
 
 [[package]]
 name = "nbc_iris"
-version = "0.6.2"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa0192bfed53ef24b72fc10530d70365596117b65334f73126cfe67b975e2918"
+checksum = "8f940ff5ad1c05f7e1288d1805a39e8c9b31aba97a5bfabffd4e08ada94748f1"
 dependencies = [
  "brewdrivers",
  "env_logger",

@@ -15,15 +15,42 @@ fn cmd(cmd: &str, help: &str) -> Row<'static> {
     ])
 }
 
-pub fn waveshare_commands() -> String {
+pub fn commands_table() -> String {
     let mut table = Table::new();
-    table.max_column_width = 60;
+    table.max_column_width = 80;
+    
+    general_commands(&mut table);
+    waveshare_commands(&mut table);
+    str1_commands(&mut table);
+    cn7500_commands(&mut table);
+    table.render()
+}
 
+fn general_commands(table: &mut Table) {
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment(bold("General Commands"), 2, Alignment::Center)
+    ]));
+
+    table.add_row(Row::new(vec![
+        TableCell::new_with_alignment(bold("Command"), 1, Alignment::Center),
+        TableCell::new_with_alignment(bold("Help"), 1, Alignment::Center),
+    ]));
+
+    table.add_row(cmd("help", "displays help information."));
+    table.add_row(cmd("quit", "quits the shell"));
+    table.add_row(cmd("exit", "exits the shell"));
+    table.add_row(cmd("commands", "lists the commands page (this page)"));
+    table.add_row(cmd("devices", "list all configured devices"));
+    table.add_row(cmd("time", "prints the current time"));
+    table.add_row(cmd("dashboard", "view a dashboard of all device states"));
+}
+
+fn waveshare_commands(table: &mut Table) {
     // Header row
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment(bold("Waveshare Commands"), 2, Alignment::Center)
     ]));
-    
+
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment(bold("Command"), 1, Alignment::Center),
         TableCell::new_with_alignment(bold("Help"), 1, Alignment::Center),
@@ -36,14 +63,9 @@ pub fn waveshare_commands() -> String {
     table.add_row(cmd("[relayID] get_cn", "Attempts to find the controller number the board is set to. The configured controller number (from the conf file) doesn't matter"));
     table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
     table.add_row(cmd("[relayID] software_revision", "Lists the software revision currently on the board"));
-
-    table.render()
 }
 
-pub fn str1_commands() -> String {
-    let mut table = Table::new();
-    table.max_column_width = 60;
-
+fn str1_commands(table: &mut Table) {
     // Header row
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment(bold("STR1 Commands"), 2, Alignment::Center)
@@ -58,14 +80,9 @@ pub fn str1_commands() -> String {
     table.add_row(cmd("[relayID] list_all", "Lists states of all the neighboring relays on this controller"));
     table.add_row(cmd("[relayID] [On|Off]", "Turns a relay on or off"));
     table.add_row(cmd("[relayID] set_cn [0-254]", "Sets a new controller number for this controller. You'll need to update your rtu_conf.yaml file. Don't forget the controller number"));
-
-    table.render()
 }
 
-pub fn cn7500_commands() -> String {
-    let mut table = Table::new();
-    table.max_column_width = 60;
-
+fn cn7500_commands(table: &mut Table) {
     // Header row
     table.add_row(Row::new(vec![
         TableCell::new_with_alignment(bold("CN7500 Commands"), 2, Alignment::Center)
@@ -85,8 +102,6 @@ pub fn cn7500_commands() -> String {
     table.add_row(cmd("[deviceID] stop", "Turns the relay off"));
     table.add_row(cmd("[deviceID] degrees [F|C]", "Sets degree units to F or C"));
     table.add_row(cmd("[deviceID] watch", "Prints the PV and SV every few seconds until you quit"));
-    
-    table.render()
 }
 
 

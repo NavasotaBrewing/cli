@@ -13,7 +13,6 @@ use nbc_iris::model::{RTU, Device};
 mod commands_table;
 mod handlers;
 
-const COMMANDS_PAGE: &'static str = include_str!("commands");
 const CONFIG_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
 const TIME_FORMAT: &'static str = "%F %H:%M:%S";
 
@@ -108,10 +107,8 @@ async fn main() {
 }
 
 fn commands(_: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
-    println!("{}", COMMANDS_PAGE);
-    println!("{}", commands_table::str1_commands());
-    println!("{}", commands_table::waveshare_commands());
-    println!("{}", commands_table::cn7500_commands());
+    info!("Commands are run with a device ID, not the device name. Some commands affect the controller (like STR1.set_cn). Those commands can be run from any device configured to that controller.");
+    println!("{}", commands_table::commands_table());
     Ok(())
 }
 
