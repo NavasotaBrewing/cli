@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 use env_logger::Env;
 use log::{error, info};
@@ -10,7 +10,7 @@ use brewdrivers::controllers::*;
 use brewdrivers::controllers::cn7500::Degree;
 use nbc_iris::model::{RTU, Device};
 
-mod commands_table;
+mod tables;
 mod handlers;
 
 const CONFIG_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
@@ -58,7 +58,11 @@ async fn main() {
     // this one lists the available commands, dynamically generated from the RTU configuration
     shell.commands.insert(
         "commands",
-        Command::new("Lists all commands".to_string(), commands)
+        Command::new("Lists all commands".to_string(), |_, _| {
+            info!("Commands are run with a device ID, not the device name. Some commands affect the controller (like STR1.set_cn). Those commands can be run from any device configured to that controller.");
+            println!("{}", tables::commands::render());
+            Ok(())
+        })
     );
 
     // This prints a list of connected devices
@@ -73,6 +77,11 @@ async fn main() {
             println!("{}", Local::now().format("%F %H:%M:%S"));
             Ok(())
         })
+    );
+
+    shell.commands.insert(
+        "dashboard",
+        Command::new_async("Starts the device dashboard".to_string(), async_fn!(RTU, dashboard))
     );
 
     // For each device, add that devices id as the command
@@ -106,14 +115,8 @@ async fn main() {
 
 }
 
-fn commands(_: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
-    info!("Commands are run with a device ID, not the device name. Some commands affect the controller (like STR1.set_cn). Those commands can be run from any device configured to that controller.");
-    println!("{}", commands_table::commands_table());
-    Ok(())
-}
-
 fn devices(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
-    println!("{}", commands_table::devices_list(&rtu));
+    println!("{}", tables::devices::render(&rtu));
     Ok(())
 }
 
@@ -302,4 +305,24 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
         error!("Too many arguments ({}) provided: {:?}", args.len(), args);
     }
 
+}
+
+fn clear() {
+    print!("\x1B[2J\x1B[1;1H");
+}
+
+async fn dashboard(mut rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
+    clear();
+    loop {
+        match tables::dashboard::render(&mut rtu).await {
+            Ok(table) => println!("{}", table),
+            Err(e) => {
+                error!("{}", e);
+                break;
+            },
+        }
+        std::thread::sleep(Duration::from_millis(5000));
+        clear();
+    }
+    Ok(())
 }
