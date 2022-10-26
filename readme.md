@@ -17,9 +17,9 @@ Alternatively, you can clone this repository and build from source with `cargo r
 # Usage
 ## Configuration File
 Before starting, you should be sure you have a configuration file for the RTU. This should go in `/etc/NavasotaBrewing/rtu_conf.yaml`. The CLI
-will look at that path for a configuration file, but you can provide another path when starting the CLI to override that.
+will look at that path for a configuration file.
 
-See [this documentation page](https://github.com/NavasotaBrewing/documentation/blob/master/config_file.md) for what goes in the configuration file.
+See [the RTU Configuration guide](https://github.com/NavasotaBrewing/documentation/blob/master/RTU_Configuration/configuration.md) for what goes in the configuration file. [This link shows](https://github.com/NavasotaBrewing/documentation/blob/master/RTU_Configuration/rtu_conf.yaml) all the possible keys that go into a configuration file, and you can copy/paste and edit that if you want.
 
 ---------------------
 
