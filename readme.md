@@ -21,6 +21,8 @@ Alternatively, you can clone this repository and build from source with `cargo r
 ## Configuration File
 Before starting, you should be sure you have a configuration file for the RTU. See [this documentation page](https://github.com/NavasotaBrewing/documentation/blob/master/RTU_Configuration/configuration.md) on writing a configuration file.
 
+Note: the configuration file will be validated when launching the CLI. If there are any errors, the CLI won't start up. This is a useful way to check your configuration file for errors.
+
 ---------------------
 
 The CLI contains help pages and command lists. You can access them like this:
