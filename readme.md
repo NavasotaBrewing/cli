@@ -4,22 +4,22 @@ This package provides a CLI for interacting with the Navasota Brewing Company's 
 This repository only contains code and documentation for the CLI. If you're looking for another part of the BCS or for hardware information, look at the [organization docs](https://github.com/NavasotaBrewing/readme).
 
 # Installation
-If you have `cargo` installed:
+**note**: if you use the build scripts to build an RTU automatically, this should be installed for you. Check by running `NBC_cli`.
+
+--------------------------
+
+Install with `cargo`
 
 ```
-$ cargo install NBC_cli
+$ cargo install NBC_cli     # Install
+$ NBC_cli                   # Start
 ```
-
-This will install the executable `~/.cargo/bin/NBC_cli` that you can run. If `~/.cargo/bin` is in your PATH, you can run it from anywhere with `NBC_cli`.
 
 Alternatively, you can clone this repository and build from source with `cargo run --release`.
 
 # Usage
 ## Configuration File
-Before starting, you should be sure you have a configuration file for the RTU. This should go in `/etc/NavasotaBrewing/rtu_conf.yaml`. The CLI
-will look at that path for a configuration file, but you can provide another path when starting the CLI to override that.
-
-See [this documentation page](https://github.com/NavasotaBrewing/documentation/blob/master/config_file.md) for what goes in the configuration file.
+Before starting, you should be sure you have a configuration file for the RTU. See [this documentation page](https://github.com/NavasotaBrewing/documentation/blob/master/RTU_Configuration/configuration.md) on writing a configuration file.
 
 ---------------------
 
@@ -37,6 +37,24 @@ For reference, the same command tables are listed below
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                               General Commands                                               ║
+╠═════════════════════════════╦════════════════════════════════════════════════════════════════════════════════╣
+║           Command           ║                                      Help                                      ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ help                        ║ displays help information.                                                     ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ quit                        ║ quits the shell                                                                ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ exit                        ║ exits the shell                                                                ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ commands                    ║ lists the commands page (this page)                                            ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ devices                     ║ list all configured devices                                                    ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ time                        ║ prints the current time                                                        ║
+╠═════════════════════════════╬════════════════════════════════════════════════════════════════════════════════╣
+║ dashboard                   ║ view a dashboard of all device states                                          ║
+╠═════════════════════════════╩════════════════════════════════════════════════════════════════════════════════╣
 ║                                              Waveshare Commands                                              ║
 ╠═════════════════════════════╦════════════════════════════════════════════════════════════════════════════════╣
 ║           Command           ║                                      Help                                      ║

@@ -20,8 +20,8 @@ env_logger = "0.9.1"
 
 [dependencies.brewdrivers]
 version = "0.12.1"
-# path = "/home/llamicron/code/NavasotaBrewing/brewdrivers"
+# path = "/home/llamicron/usr/dev/NavasotaBrewing/brewdrivers"
 
 [dependencies.nbc_iris]
-version = "0.6.2"
-# path = "/home/llamicron/code/NavasotaBrewing/iris"
+version = "0.6"
+# path = "/home/llamicron/usr/dev/NavasotaBrewing/iris"
