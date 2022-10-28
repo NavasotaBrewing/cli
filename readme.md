@@ -3,6 +3,9 @@ This package provides a CLI for interacting with the Navasota Brewing Company's 
 
 This repository only contains code and documentation for the CLI. If you're looking for another part of the BCS or for hardware information, look at the [organization docs](https://github.com/NavasotaBrewing/readme).
 
+<!-- TODO: rename this crate? -->
+Technically, this isn't a command line interface (CLI), it's a terminal user interface (TUI) but I named it CLI a long time ago and I don't want to rename it.
+
 # Installation
 **note**: if you use the build scripts to build an RTU automatically, this should be installed for you. Check by running `NBC_cli`.
 
