@@ -107,9 +107,9 @@ dependencies = [
 
 [[package]]
 name = "brewdrivers"
-version = "0.12.1"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e14be2f5799e51cb1a99b94fb04c2768a6858c7c207dab58fcb84aa08d80cfc"
+checksum = "840fb37176783ee8abe180edab184472a95f941fd5d65f3bbe5cc2ae4816c099"
 dependencies = [
  "async-trait",
  "crc",
