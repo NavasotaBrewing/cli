@@ -3,7 +3,7 @@ use term_table::row::Row;
 use term_table::table_cell::{TableCell, Alignment};
 use term_table::{Table, TableStyle};
 
-use nbc_iris::model::RTU;
+use brewdrivers::model::RTU;
 
 /// Makes text bold when printed
 fn bold(text: &str) -> String {
@@ -164,7 +164,7 @@ pub mod devices {
 /// Functions for creating the dashboard table
 pub mod dashboard {
     use brewdrivers::{controllers::*, drivers::InstrumentError};
-    use nbc_iris::model::Device;
+    use brewdrivers::model::Device;
 
     use super::*;
 

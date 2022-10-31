@@ -1,7 +1,7 @@
 //! Contains the functionality of the cn7500 commands
 
 use chrono::Local;
-use nbc_iris::model::Device;
+use brewdrivers::model::Device;
 use std::thread::sleep;
 use std::time::Duration;
 use std::io::{Write, stdout};

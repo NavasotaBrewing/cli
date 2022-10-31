@@ -8,7 +8,7 @@ use chrono::Local;
 
 use brewdrivers::controllers::*;
 use brewdrivers::controllers::cn7500::Degree;
-use nbc_iris::model::{RTU, Device};
+use brewdrivers::model::{RTU, Device};
 
 mod tables;
 mod handlers;
