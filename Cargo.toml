@@ -19,5 +19,5 @@ log = "0.4.17"
 env_logger = "0.9.1"
 
 [dependencies.brewdrivers]
-# version = "0.13"
-path = "/home/llamicron/usr/dev/NavasotaBrewing/brewdrivers"
+version = "0.14"
+# path = "/home/llamicron/usr/dev/NavasotaBrewing/brewdrivers"
