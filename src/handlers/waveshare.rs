@@ -1,6 +1,7 @@
 use log::{info, error};
 
 use brewdrivers::controllers::*;
+use brewdrivers::state::BinaryState;
 
 use super::stringify;
 

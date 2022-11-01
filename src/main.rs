@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 use std::{error::Error, time::Duration};
 
+use brewdrivers::state::BinaryState;
 use env_logger::Env;
 use log::{error, info};
 use shellfish::{Command, Shell, async_fn, app::App};
