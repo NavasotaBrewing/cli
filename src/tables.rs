@@ -149,10 +149,10 @@ pub mod devices {
             table.add_row(Row::new(vec![
                 TableCell::new_with_alignment(&device.id, 1, Alignment::Left),
                 TableCell::new_with_alignment(&device.name, 1, Alignment::Left),
-                TableCell::new_with_alignment(&device.controller.to_string(), 1, Alignment::Left),
-                TableCell::new_with_alignment(&device.controller_addr, 1, Alignment::Left),
-                TableCell::new_with_alignment(&device.addr, 1, Alignment::Left),
-                TableCell::new_with_alignment(&device.port, 1, Alignment::Left)
+                TableCell::new_with_alignment(&device.conn.controller().to_string(), 1, Alignment::Left),
+                TableCell::new_with_alignment(&device.conn.controller_addr(), 1, Alignment::Left),
+                TableCell::new_with_alignment(&device.conn.addr(), 1, Alignment::Left),
+                TableCell::new_with_alignment(&device.conn.port(), 1, Alignment::Left)
             ]));
         }
     
@@ -185,7 +185,7 @@ pub mod dashboard {
         ]));
     
         for dev in rtu.devices.iter_mut() {
-            match dev.controller {
+            match dev.conn.controller() {
                 Controller::CN7500 => cn7500_status(dev, &mut table).await?,
                 Controller::STR1 => str1_status(dev, &mut table)?,
                 Controller::Waveshare => waveshare_status(dev, &mut table)?
@@ -196,7 +196,7 @@ pub mod dashboard {
     }
 
     async fn cn7500_status(device: &mut Device, table: &mut Table<'static>) -> Result<(), InstrumentError> {
-        let mut cont = CN7500::connect(device.controller_addr, &device.port).await?;
+        let mut cont = CN7500::connect(device.conn.controller_addr(), &device.conn.port()).await?;
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("{}", cont.is_running().await?), 1, Alignment::Left),
@@ -208,10 +208,10 @@ pub mod dashboard {
     }
 
     fn str1_status(device: &mut Device, table: &mut Table<'static>) -> Result<(), InstrumentError> {
-        let mut cont = STR1::connect(device.controller_addr, &device.port)?;
+        let mut cont = STR1::connect(device.conn.controller_addr(), &device.conn.port())?;
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
-            TableCell::new_with_alignment(format!("{}", cont.get_relay(device.addr)?), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{}", cont.get_relay(device.conn.addr())?), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left)
         ]));
@@ -220,10 +220,10 @@ pub mod dashboard {
     }
 
     fn waveshare_status(device: &mut Device, table: &mut Table) -> Result<(), InstrumentError> {
-        let mut cont = Waveshare::connect(device.controller_addr, &device.port)?;
+        let mut cont = Waveshare::connect(device.conn.controller_addr(), &device.conn.port())?;
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
-            TableCell::new_with_alignment(format!("{}", cont.get_relay(device.addr)?), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{}", cont.get_relay(device.conn.addr())?), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left)
         ]));

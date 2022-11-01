@@ -125,7 +125,7 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
     let device_id = args.get(0).expect("Arg not provided, this shouldn't be possible");
 
     if let Some(dev) = rtu.devices.iter().find(|dev| dev.id == *device_id ) {
-        match dev.controller {
+        match dev.conn.controller() {
             Controller::STR1 => handle_str1(dev, args).await,
             Controller::CN7500 => handle_cn7500(dev, args).await,
             Controller::Waveshare => handle_ws(dev, args).await,
@@ -137,7 +137,7 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
 
 async fn handle_ws(device: &Device, args: Vec<String>) {
     use handlers::waveshare as ws;
-    let mut ws = match Waveshare::connect(device.controller_addr, &device.port) {
+    let mut ws = match Waveshare::connect(device.conn.controller_addr(), &device.conn.port()) {
         Ok(ws) => ws,
         Err(e) => {
             error!("Couldn't connect to Waveshare: {}", e);
@@ -149,14 +149,14 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
     if args.len() == 1 {
         // No arguments
 
-        ws::get_relay(&mut ws, device.addr);
+        ws::get_relay(&mut ws, device.conn.addr());
     }
 
     if args.len() == 2 {
         // 1 argument
         if let Some(arg1) = args.get(1) {
             if let Ok(state) = arg1.parse::<BinaryState>() {
-                ws::set_relay(&mut ws, device.addr, state);
+                ws::set_relay(&mut ws, device.conn.addr(), state);
                 return;
             }
 
@@ -197,7 +197,7 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
 
 async fn handle_str1(device: &Device, args: Vec<String>) {
     use handlers::str1 as s;
-    let mut str1 = match STR1::connect(device.controller_addr, &device.port) {
+    let mut str1 = match STR1::connect(device.conn.controller_addr(), &device.conn.port()) {
         Ok(str1) => str1,
         Err(err) => {
             error!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
@@ -208,13 +208,13 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 
 
     if args.len() == 1 {
-        s::get_relay(&mut str1, device.addr);
+        s::get_relay(&mut str1, device.conn.addr());
     }
 
     if args.len() == 2 {
         if let Some(arg1) = args.get(1) {
             if let Ok(state) = arg1.parse::<BinaryState>() {
-                s::set_relay(&mut str1, device.addr, state);
+                s::set_relay(&mut str1, device.conn.addr(), state);
                 return;
             }
             
@@ -247,7 +247,7 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // bring in all the CN7500
     use handlers::cn7500 as c;
-    let mut cn = match CN7500::connect(device.controller_addr, &device.port).await {
+    let mut cn = match CN7500::connect(device.conn.controller_addr(), &device.conn.port()).await {
         Ok(cn) => cn,
         Err(err) => {
             error!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
