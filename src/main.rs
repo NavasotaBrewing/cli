@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+use std::convert::TryFrom;
 use std::{error::Error, time::Duration};
 
 use brewdrivers::state::BinaryState;
@@ -14,7 +15,6 @@ use brewdrivers::model::{RTU, Device};
 mod tables;
 mod handlers;
 
-const CONFIG_FILE: &'static str = "/etc/NavasotaBrewing/rtu_conf.yaml";
 const TIME_FORMAT: &'static str = "%F %H:%M:%S";
 
 
@@ -41,7 +41,8 @@ async fn main() {
 
 
     // Load the RTU Digital Twin from the config file
-    let mut rtu = match RTU::generate(Some(CONFIG_FILE)) {
+    // None => use brewdrivers default
+    let mut rtu = match RTU::generate(None) {
         Ok(rtu) => rtu,
         Err(e) => {
             error!("Couldn't deserialize config file: {}", e);
@@ -105,7 +106,8 @@ async fn main() {
     } else {
         // Run the shell
         info!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
-        info!("RTU config built successfully from file `{CONFIG_FILE}`");
+        info!("RTU config built successfully from file `{}`", brewdrivers::CONFIG_FILE);
+        info!("Start the CLI with `RUST_LOG=trace NBC_cli` for full logging output");
         devices(&mut rtu, vec![]).unwrap();
         println!("Prost!");
         match shell.run_async().await {
@@ -129,6 +131,7 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
             Controller::STR1 => handle_str1(dev, args).await,
             Controller::CN7500 => handle_cn7500(dev, args).await,
             Controller::Waveshare => handle_ws(dev, args).await,
+            Controller::WaveshareV2 => handle_ws2(dev, args).await,
         }
     }
 
@@ -137,7 +140,7 @@ async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Erro
 
 async fn handle_ws(device: &Device, args: Vec<String>) {
     use handlers::waveshare as ws;
-    let mut ws = match Waveshare::connect(device.conn.controller_addr(), &device.conn.port()) {
+    let mut ws = match Waveshare::try_from(device) {
         Ok(ws) => ws,
         Err(e) => {
             error!("Couldn't connect to Waveshare: {}", e);
@@ -195,9 +198,69 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
 
 }
 
+async fn handle_ws2(device: &Device, args: Vec<String>) {
+    use handlers::wavesharev2 as ws2;
+    let mut ws = match WaveshareV2::try_from(device) {
+        Ok(ws) => ws,
+        Err(e) => {
+            error!("Couldn't connect to Waveshare: {}", e);
+            return;
+        }
+    };
+
+
+    if args.len() == 1 {
+        // No arguments
+
+        ws2::get_relay(&mut ws, device.conn.addr());
+    }
+
+    if args.len() == 2 {
+        // 1 argument
+        if let Some(arg1) = args.get(1) {
+            if let Ok(state) = arg1.parse::<BinaryState>() {
+                ws2::set_relay(&mut ws, device.conn.addr(), state);
+                return;
+            }
+
+            match arg1.as_str() {
+                "list_all" => ws2::list_all(&mut ws),
+                "get_cn" => ws2::get_cn(&mut ws),
+                "software_revision" => ws2::software_revision(&mut ws),
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+            }
+            
+            
+        }
+    }
+
+    if args.len() == 3 {
+        // 2 arguments
+
+        if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
+            match arg1.as_str() {
+                "set_all" => {
+                    match arg2.parse::<BinaryState>() {
+                        Ok(state) => ws2::set_all(&mut ws, state),
+                        Err(e) => error!("{}", e)
+                    }
+                },
+                "set_cn" => {
+                    match arg2.parse::<u8>() {
+                        Ok(new_cn) => ws2::set_cn(&mut ws, new_cn),
+                        Err(e) => error!("Error, couldn't parse controller number (0-254): {}", e)
+                    }
+                },
+                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+            }
+        }
+    }
+
+}
+
 async fn handle_str1(device: &Device, args: Vec<String>) {
     use handlers::str1 as s;
-    let mut str1 = match STR1::connect(device.conn.controller_addr(), &device.conn.port()) {
+    let mut str1 = match STR1::try_from(device) {
         Ok(str1) => str1,
         Err(err) => {
             error!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
@@ -247,7 +310,16 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
 async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // bring in all the CN7500
     use handlers::cn7500 as c;
-    let mut cn = match CN7500::connect(device.conn.controller_addr(), &device.conn.port()).await {
+    // CN7500 doesn't implement TryFrom<&Device> so we have to do it manually
+    let port = device.conn.port();
+    let connection = CN7500::connect(
+        device.conn.controller_addr(), 
+        &port,
+        *device.conn.baudrate() as u64,
+        device.conn.timeout()
+    );
+
+    let mut cn = match connection.await {
         Ok(cn) => cn,
         Err(err) => {
             error!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
@@ -322,8 +394,6 @@ async fn dashboard(mut rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Erro
                 break;
             },
         }
-        std::thread::sleep(Duration::from_millis(5000));
-        clear();
     }
     Ok(())
 }

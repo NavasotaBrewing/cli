@@ -54,11 +54,11 @@ pub mod commands {
         table.add_row(cmd("dashboard", "view a dashboard of all device states"));
     }
     
-    /// Adds waveshare commands to the commands table
+    /// Adds waveshare (v1 and v2) commands to the commands table
     fn waveshare_commands(table: &mut Table) {
         // Header row
         table.add_row(Row::new(vec![
-            TableCell::new_with_alignment(bold("Waveshare Commands"), 2, Alignment::Center)
+            TableCell::new_with_alignment(bold("Waveshare (v1/v2) Commands"), 2, Alignment::Center)
         ]));
     
         table.add_row(Row::new(vec![
@@ -163,6 +163,8 @@ pub mod devices {
 
 /// Functions for creating the dashboard table
 pub mod dashboard {
+    use std::convert::TryFrom;
+
     use brewdrivers::{controllers::*, drivers::InstrumentError};
     use brewdrivers::model::Device;
 
@@ -188,7 +190,8 @@ pub mod dashboard {
             match dev.conn.controller() {
                 Controller::CN7500 => cn7500_status(dev, &mut table).await?,
                 Controller::STR1 => str1_status(dev, &mut table)?,
-                Controller::Waveshare => waveshare_status(dev, &mut table)?
+                Controller::Waveshare => waveshare_status(dev, &mut table)?,
+                Controller::WaveshareV2 => wavesharev2_status(dev, &mut table)?,
             }
         }
 
@@ -196,7 +199,16 @@ pub mod dashboard {
     }
 
     async fn cn7500_status(device: &mut Device, table: &mut Table<'static>) -> Result<(), InstrumentError> {
-        let mut cont = CN7500::connect(device.conn.controller_addr(), &device.conn.port()).await?;
+        let c = &device.conn;
+        let port = c.port();
+
+        let mut cont = CN7500::connect(
+            c.controller_addr(),
+            &port,
+            *c.baudrate() as u64,
+            c.timeout(),
+        ).await?;
+
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("{}", cont.is_running().await?), 1, Alignment::Left),
@@ -207,8 +219,8 @@ pub mod dashboard {
         Ok(())
     }
 
-    fn str1_status(device: &mut Device, table: &mut Table<'static>) -> Result<(), InstrumentError> {
-        let mut cont = STR1::connect(device.conn.controller_addr(), &device.conn.port())?;
+    fn str1_status(device: &Device, table: &mut Table<'static>) -> Result<(), InstrumentError> {
+        let mut cont = STR1::try_from(device)?;
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("{}", cont.get_relay(device.conn.addr())?), 1, Alignment::Left),
@@ -219,8 +231,20 @@ pub mod dashboard {
         Ok(())
     }
 
-    fn waveshare_status(device: &mut Device, table: &mut Table) -> Result<(), InstrumentError> {
-        let mut cont = Waveshare::connect(device.conn.controller_addr(), &device.conn.port())?;
+    fn waveshare_status(device: &Device, table: &mut Table) -> Result<(), InstrumentError> {
+        let mut cont = Waveshare::try_from(device)?;
+        table.add_row(Row::new(vec![
+            TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("{}", cont.get_relay(device.conn.addr())?), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left),
+            TableCell::new_with_alignment(format!("N/A"), 1, Alignment::Left)
+        ]));
+
+        Ok(())
+    }
+
+    fn wavesharev2_status(device: &Device, table: &mut Table) -> Result<(), InstrumentError> {
+        let mut cont = WaveshareV2::try_from(device)?;
         table.add_row(Row::new(vec![
             TableCell::new_with_alignment(format!("{}", device.name), 1, Alignment::Left),
             TableCell::new_with_alignment(format!("{}", cont.get_relay(device.conn.addr())?), 1, Alignment::Left),

@@ -69,7 +69,14 @@ pub(crate) async fn watch(device: &Device) {
     loop {
         print!("\n{}\t", Local::now().format(crate::TIME_FORMAT));
         // I don't know why but we have to reconnect every time here
-        match CN7500::connect(device.conn.controller_addr(), &device.conn.port()).await {
+        let port = device.conn.port();
+        let connection = CN7500::connect(
+            device.conn.controller_addr(), 
+            &port,
+            *device.conn.baudrate() as u64,
+            device.conn.timeout()
+        );
+        match connection.await {
             Ok(mut cn) => {
                 println!(
                     "{{ PV: {}, SV: {}, Running: {} }}",
