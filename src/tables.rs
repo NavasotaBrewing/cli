@@ -120,8 +120,6 @@ pub mod commands {
 
 /// Functions for creating the devices table
 pub mod devices {
-    use brewdrivers::model::device::Connection;
-
     use super::*;
 
     /// Creates a table of all devices from the configuration

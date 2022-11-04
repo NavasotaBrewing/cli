@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use std::convert::TryFrom;
-use std::{error::Error, time::Duration};
+use std::{error::Error};
 
 use brewdrivers::state::BinaryState;
 use env_logger::Env;
