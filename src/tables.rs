@@ -120,6 +120,8 @@ pub mod commands {
 
 /// Functions for creating the devices table
 pub mod devices {
+    use brewdrivers::model::device::Connection;
+
     use super::*;
 
     /// Creates a table of all devices from the configuration
@@ -131,7 +133,8 @@ pub mod devices {
     
         // Title row
         table.add_row(Row::new(vec![
-            TableCell::new_with_alignment(bold("Configured Devices"), 6, Alignment::Center)
+            TableCell::new_with_alignment(bold("Configured Devices"), 3, Alignment::Center),
+            TableCell::new_with_alignment(bold("Connection Details"), 5, Alignment::Center)
         ]));
     
         // Header row
@@ -139,9 +142,11 @@ pub mod devices {
             TableCell::new_with_alignment(bold("ID"), 1, Alignment::Center),
             TableCell::new_with_alignment(bold("Name"), 1, Alignment::Center),
             TableCell::new_with_alignment(bold("Type"), 1, Alignment::Center),
-            TableCell::new_with_alignment(bold("Controller Addr"), 1, Alignment::Center),
-            TableCell::new_with_alignment(bold("Device Addr"), 1, Alignment::Center),
+            TableCell::new_with_alignment(bold("Contr. #"), 1, Alignment::Center),
+            TableCell::new_with_alignment(bold("Dev. #"), 1, Alignment::Center),
             TableCell::new_with_alignment(bold("Port"), 1, Alignment::Center),
+            TableCell::new_with_alignment(bold("Baudrate"), 1, Alignment::Center),
+            TableCell::new_with_alignment(bold("Timeout"), 1, Alignment::Center),
         ]));
     
         // Values from devices
@@ -152,7 +157,9 @@ pub mod devices {
                 TableCell::new_with_alignment(&device.conn.controller().to_string(), 1, Alignment::Left),
                 TableCell::new_with_alignment(&device.conn.controller_addr(), 1, Alignment::Left),
                 TableCell::new_with_alignment(&device.conn.addr(), 1, Alignment::Left),
-                TableCell::new_with_alignment(&device.conn.port(), 1, Alignment::Left)
+                TableCell::new_with_alignment(&device.conn.port(), 1, Alignment::Left),
+                TableCell::new_with_alignment(&device.conn.baudrate(), 1, Alignment::Left),
+                TableCell::new_with_alignment(&format!("{:?}", device.conn.timeout()), 1, Alignment::Left),
             ]));
         }
     

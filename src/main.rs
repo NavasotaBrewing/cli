@@ -188,7 +188,7 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
                 "set_cn" => {
                     match arg2.parse::<u8>() {
                         Ok(new_cn) => ws::set_cn(&mut ws, new_cn),
-                        Err(e) => error!("Error, couldn't parse controller number (0-254): {}", e)
+                        Err(e) => error!("couldn't parse controller number (0-254): {}", e)
                     }
                 },
                 _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
