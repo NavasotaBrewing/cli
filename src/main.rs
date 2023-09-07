@@ -1,44 +1,49 @@
 #![allow(non_snake_case)]
 use std::convert::TryFrom;
-use std::{error::Error};
+use std::error::Error;
 
 use brewdrivers::state::BinaryState;
+use chrono::Local;
 use env_logger::Env;
 use log::{error, info};
-use shellfish::{Command, Shell, async_fn, app::App};
-use chrono::Local;
+use shellfish::{app::App, async_fn, Command, Shell};
 
-use brewdrivers::controllers::*;
 use brewdrivers::controllers::cn7500::Degree;
-use brewdrivers::model::{RTU, Device};
+use brewdrivers::controllers::*;
+use brewdrivers::model::{Device, RTU};
 
-mod tables;
 mod handlers;
+mod tables;
 
 const TIME_FORMAT: &'static str = "%F %H:%M:%S";
-
 
 #[tokio::main]
 async fn main() {
     // Initialize logging
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).format_timestamp(None).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .format_timestamp(None)
+        .init();
 
     // Connect the command line arguments
     let mut args: Vec<String> = std::env::args().collect();
-    
+
     // if this is true, the program will parse the given CLI arguments and use those as a command.
     // If it's false, the shell will be opened.
     let mut run_exec = false;
-    
+
     // If the first arg is `exec`, then we want to run the application
     // with the provided command, not open the shell.
     if let Some(arg1) = args.get(1) {
+        if arg1 == "--version" {
+            println!("NBC CLI version {}", env!("CARGO_PKG_VERSION"));
+            std::process::exit(0);
+        }
+
         // If we found arg1 to be exec, set a flag and remove `exec` from the args
         // So that we can parse the commands properly
         run_exec = arg1 == "exec";
         args.remove(1);
     }
-
 
     // Load the RTU Digital Twin from the config file
     // None => use brewdrivers default
@@ -51,8 +56,12 @@ async fn main() {
     };
 
     // Copy a list of device ids for use later
-    let device_ids = &rtu.devices.iter().map(|dev| dev.id.clone() ).collect::<Vec<String>>();
-    
+    let device_ids = &rtu
+        .devices
+        .iter()
+        .map(|dev| dev.id.clone())
+        .collect::<Vec<String>>();
+
     // Create a shell
     let mut shell = Shell::new_async(rtu.clone(), format!("🍺 ==> "));
 
@@ -70,7 +79,7 @@ async fn main() {
     // This prints a list of connected devices
     shell.commands.insert(
         "devices",
-        Command::new("Lists all connected devices".to_string(), devices)
+        Command::new("Lists all connected devices".to_string(), devices),
     );
 
     shell.commands.insert(
@@ -78,24 +87,28 @@ async fn main() {
         Command::new("Prints the current timestamp".to_string(), |_, _| {
             println!("{}", Local::now().format("%F %H:%M:%S"));
             Ok(())
-        })
+        }),
     );
 
     shell.commands.insert(
         "dashboard",
-        Command::new_async("Starts the device dashboard".to_string(), async_fn!(RTU, dashboard))
+        Command::new_async(
+            "Starts the device dashboard".to_string(),
+            async_fn!(RTU, dashboard),
+        ),
     );
 
     // For each device, add that devices id as the command
     for device_id in device_ids {
         shell.commands.insert(
             &device_id,
-            Command::new_async(format!("operations for {}", device_id), async_fn!(RTU, device_ops))
+            Command::new_async(
+                format!("operations for {}", device_id),
+                async_fn!(RTU, device_ops),
+            ),
         );
     }
 
-    
-    
     // Run either the cli or the shell
     if run_exec {
         // CLI
@@ -105,17 +118,22 @@ async fn main() {
         app.run_vec_async(args).await.unwrap();
     } else {
         // Run the shell
-        info!("Navasota Brewing Company -- RTU CLI Version {}", env!("CARGO_PKG_VERSION"));
-        info!("RTU config built successfully from file `{}`", brewdrivers::CONFIG_FILE);
+        info!(
+            "Navasota Brewing Company -- RTU CLI Version {}",
+            env!("CARGO_PKG_VERSION")
+        );
+        info!(
+            "RTU config built successfully from file `{}`",
+            brewdrivers::CONFIG_FILE
+        );
         info!("Start the CLI with `RUST_LOG=trace NBC_cli` for full logging output");
         devices(&mut rtu, vec![]).unwrap();
         println!("Prost!");
         match shell.run_async().await {
-            Ok(_) => {},
-            Err(e) => error!("Error: {}", e)
+            Ok(_) => {}
+            Err(e) => error!("Error: {}", e),
         }
     }
-
 }
 
 fn devices(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
@@ -124,9 +142,11 @@ fn devices(rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Error>> {
 }
 
 async fn device_ops(rtu: &mut RTU, args: Vec<String>) -> Result<(), Box<dyn Error>> {
-    let device_id = args.get(0).expect("Arg not provided, this shouldn't be possible");
+    let device_id = args
+        .get(0)
+        .expect("Arg not provided, this shouldn't be possible");
 
-    if let Some(dev) = rtu.devices.iter().find(|dev| dev.id == *device_id ) {
+    if let Some(dev) = rtu.devices.iter().find(|dev| dev.id == *device_id) {
         match dev.conn.controller() {
             Controller::STR1 => handle_str1(dev, args).await,
             Controller::CN7500 => handle_cn7500(dev, args).await,
@@ -148,7 +168,6 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
         }
     };
 
-
     if args.len() == 1 {
         // No arguments
 
@@ -167,10 +186,11 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
                 "list_all" => ws::list_all(&mut ws),
                 "get_cn" => ws::get_cn(&mut ws),
                 "software_revision" => ws::software_revision(&mut ws),
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
-            
-            
         }
     }
 
@@ -179,23 +199,21 @@ async fn handle_ws(device: &Device, args: Vec<String>) {
 
         if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
             match arg1.as_str() {
-                "set_all" => {
-                    match arg2.parse::<BinaryState>() {
-                        Ok(state) => ws::set_all(&mut ws, state),
-                        Err(e) => error!("{}", e)
-                    }
+                "set_all" => match arg2.parse::<BinaryState>() {
+                    Ok(state) => ws::set_all(&mut ws, state),
+                    Err(e) => error!("{}", e),
                 },
-                "set_cn" => {
-                    match arg2.parse::<u8>() {
-                        Ok(new_cn) => ws::set_cn(&mut ws, new_cn),
-                        Err(e) => error!("couldn't parse controller number (0-254): {}", e)
-                    }
+                "set_cn" => match arg2.parse::<u8>() {
+                    Ok(new_cn) => ws::set_cn(&mut ws, new_cn),
+                    Err(e) => error!("couldn't parse controller number (0-254): {}", e),
                 },
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         }
     }
-
 }
 
 async fn handle_ws2(device: &Device, args: Vec<String>) {
@@ -207,7 +225,6 @@ async fn handle_ws2(device: &Device, args: Vec<String>) {
             return;
         }
     };
-
 
     if args.len() == 1 {
         // No arguments
@@ -227,10 +244,11 @@ async fn handle_ws2(device: &Device, args: Vec<String>) {
                 "list_all" => ws2::list_all(&mut ws),
                 "get_cn" => ws2::get_cn(&mut ws),
                 "software_revision" => ws2::software_revision(&mut ws),
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
-            
-            
         }
     }
 
@@ -239,23 +257,21 @@ async fn handle_ws2(device: &Device, args: Vec<String>) {
 
         if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
             match arg1.as_str() {
-                "set_all" => {
-                    match arg2.parse::<BinaryState>() {
-                        Ok(state) => ws2::set_all(&mut ws, state),
-                        Err(e) => error!("{}", e)
-                    }
+                "set_all" => match arg2.parse::<BinaryState>() {
+                    Ok(state) => ws2::set_all(&mut ws, state),
+                    Err(e) => error!("{}", e),
                 },
-                "set_cn" => {
-                    match arg2.parse::<u8>() {
-                        Ok(new_cn) => ws2::set_cn(&mut ws, new_cn),
-                        Err(e) => error!("Error, couldn't parse controller number (0-254): {}", e)
-                    }
+                "set_cn" => match arg2.parse::<u8>() {
+                    Ok(new_cn) => ws2::set_cn(&mut ws, new_cn),
+                    Err(e) => error!("Error, couldn't parse controller number (0-254): {}", e),
                 },
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         }
     }
-
 }
 
 async fn handle_str1(device: &Device, args: Vec<String>) {
@@ -263,12 +279,13 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
     let mut str1 = match STR1::try_from(device) {
         Ok(str1) => str1,
         Err(err) => {
-            error!("Couldn't connect to STR1 board with ID: {}\nError: {}", device.id, err);
+            error!(
+                "Couldn't connect to STR1 board with ID: {}\nError: {}",
+                device.id, err
+            );
             return;
         }
     };
-    
-
 
     if args.len() == 1 {
         s::get_relay(&mut str1, device.conn.addr());
@@ -280,10 +297,13 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
                 s::set_relay(&mut str1, device.conn.addr(), state);
                 return;
             }
-            
+
             match arg1.as_str() {
                 "list_all" => s::list_all(&mut str1),
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         }
     }
@@ -291,13 +311,14 @@ async fn handle_str1(device: &Device, args: Vec<String>) {
     if args.len() == 3 {
         if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
             match arg1.as_str() {
-                "set_cn" => {
-                    match arg2.parse::<u8>() {
-                        Ok(new_cn) => s::set_cn(&mut str1, new_cn),
-                        Err(e) => error!("Couldn't parse new controller number (0-255): {}", e)
-                    }
+                "set_cn" => match arg2.parse::<u8>() {
+                    Ok(new_cn) => s::set_cn(&mut str1, new_cn),
+                    Err(e) => error!("Couldn't parse new controller number (0-255): {}", e),
                 },
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         }
     }
@@ -313,28 +334,29 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
     // CN7500 doesn't implement TryFrom<&Device> so we have to do it manually
     let port = device.conn.port();
     let connection = CN7500::connect(
-        device.conn.controller_addr(), 
+        device.conn.controller_addr(),
         &port,
         *device.conn.baudrate() as u64,
-        device.conn.timeout()
+        device.conn.timeout(),
     );
 
     let mut cn = match connection.await {
         Ok(cn) => cn,
         Err(err) => {
-            error!("Couldn't connect to CN7500 with ID: {}\nError: {}", device.id, err);
+            error!(
+                "Couldn't connect to CN7500 with ID: {}\nError: {}",
+                device.id, err
+            );
             return;
         }
     };
-    
-
 
     if args.len() == 1 {
         // 0 argument commands
 
         c::get_all(&mut cn).await;
     }
-    
+
     if args.len() == 2 {
         // 1 arg commands
         if let Some(arg1) = args.get(1) {
@@ -345,7 +367,10 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
                 "run" => c::run(&mut cn).await,
                 "stop" => c::stop(&mut cn).await,
                 "watch" => c::watch(&device).await,
-                _ => error!("Argument {:?} not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument {:?} not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         }
     }
@@ -354,20 +379,22 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
         // 2 arguments
         if let (Some(arg1), Some(arg2)) = (args.get(1), args.get(2)) {
             match arg1.as_str() {
-                "set" => {
-                    match arg2.parse::<f64>() {
-                        Ok(new_sv) => c::set_sv(&mut cn, new_sv).await,
-                        Err(e) => error!("`set` requires a floating point number as an argument: {}", e)
-                    }
+                "set" => match arg2.parse::<f64>() {
+                    Ok(new_sv) => c::set_sv(&mut cn, new_sv).await,
+                    Err(e) => error!(
+                        "`set` requires a floating point number as an argument: {}",
+                        e
+                    ),
                 },
-                "degrees" => {
-                    match arg2.as_str() {
-                        "F" => c::set_degrees(&mut cn, Degree::Fahrenheit).await,
-                        "C" => c::set_degrees(&mut cn, Degree::Celsius).await,
-                        _ => error!("Unkown argument `{}`", arg2),
-                    }
+                "degrees" => match arg2.as_str() {
+                    "F" => c::set_degrees(&mut cn, Degree::Fahrenheit).await,
+                    "C" => c::set_degrees(&mut cn, Degree::Celsius).await,
+                    _ => error!("Unkown argument `{}`", arg2),
                 },
-                _ => error!("Argument `{}` not found, or you provided the wrong number of arguments", arg1)
+                _ => error!(
+                    "Argument `{}` not found, or you provided the wrong number of arguments",
+                    arg1
+                ),
             }
         } else {
             error!("Couldn't retrieve args 1 and 2");
@@ -377,7 +404,6 @@ async fn handle_cn7500(device: &Device, args: Vec<String>) {
     if args.len() > 3 {
         error!("Too many arguments ({}) provided: {:?}", args.len(), args);
     }
-
 }
 
 fn clear() {
@@ -392,8 +418,9 @@ async fn dashboard(mut rtu: &mut RTU, _: Vec<String>) -> Result<(), Box<dyn Erro
             Err(e) => {
                 error!("{}", e);
                 break;
-            },
+            }
         }
     }
     Ok(())
 }
+
